@@ -4,7 +4,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.option.GameOptions;
-import net.minecraft.client.option.ParticlesMode;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
@@ -327,7 +326,7 @@ final class Mods {
         private final Setting sPart, sEnt, sBob;
         // Not: Orijinaller sadece bu oturumda tutulur; boost açıkken oyunu kapatırsanız
         // options.txt'ye düşük değerler yazılmış olabilir.
-        private ParticlesMode oPart;
+        private String oPart;
         private Double oEnt;
         private Boolean oBob;
 
@@ -344,7 +343,7 @@ final class Mods {
         @Override
         public void onEnable(MinecraftClient mc) {
             GameOptions o = mc.options;
-            oPart = o.getParticles().getValue();
+            oPart = o.getParticles().getValue().name();
             oEnt = o.getEntityDistanceScaling().getValue();
             oBob = o.getBobView().getValue();
             apply(mc);
@@ -357,16 +356,24 @@ final class Mods {
 
         private void apply(MinecraftClient mc) {
             GameOptions o = mc.options;
-            if (sPart.on()) o.getParticles().setValue(ParticlesMode.MINIMAL);
+            if (sPart.on()) setParticles(o, "MINIMAL");
             double[] d = {1.0, 0.75, 0.5};
             o.getEntityDistanceScaling().setValue(d[Math.max(0, Math.min(2, sEnt.value))]);
             if (sBob.on()) o.getBobView().setValue(false);
         }
 
+        /** Enum sınıfının adını yazmadan, ada göre partikül modunu ayarlar (sürümler arası güvenli). */
+        private static void setParticles(GameOptions o, String name) {
+            var opt = o.getParticles();
+            for (var e : opt.getValue().getDeclaringClass().getEnumConstants()) {
+                if (e.name().equals(name)) { opt.setValue(e); return; }
+            }
+        }
+
         @Override
         public void onDisable(MinecraftClient mc) {
             GameOptions o = mc.options;
-            if (oPart != null) o.getParticles().setValue(oPart);
+            if (oPart != null) setParticles(o, oPart);
             if (oEnt != null) o.getEntityDistanceScaling().setValue(oEnt);
             if (oBob != null) o.getBobView().setValue(oBob);
         }
