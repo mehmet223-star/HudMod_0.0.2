@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "hudmod",
+  "version": "1.0.0",
+  "name": "HUD Mod",
+  "description": "Lunar tarzi HUD, PvP araclari, Zoom, Fullbright ve SlowSwing.",
+  "environment": "client",
+  "entrypoints": { "client": ["com.example.hudmod.HudMod"] },
+  "mixins": ["hudmod.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.17.0",
+    "minecraft": "1.21.11",
+    "fabric-api": "*"
+  }
+}
