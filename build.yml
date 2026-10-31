@@ -1,0 +1,27 @@
+name: build
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.2.0"
+      - name: Dosyalari duzenle
+        run: |
+          D=src/main/java/com/example/hudmod
+          mkdir -p $D/mixin src/main/resources/assets/hudmod/lang
+          mv *Mixin.java $D/mixin/
+          mv *.java $D/
+          mv fabric.mod.json hudmod.mixins.json src/main/resources/
+          mv en_us.json tr_tr.json src/main/resources/assets/hudmod/lang/
+      - run: gradle build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hudmod
+          path: build/libs/hudmod-1.0.0.jar
