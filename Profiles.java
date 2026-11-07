@@ -22,8 +22,10 @@ final class Profiles {
     private Profiles() {}
 
     static final String[] BUILTIN = {"Main", "Sword PvP", "Crystal PvP", "Mace PvP"};
+    private static final int VERSION = 3;
     private static final Map<String, JsonObject> DATA = new LinkedHashMap<>();
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Gson COMPACT = new Gson();
     static String current = "Main";
 
     private static Path path() {
@@ -34,11 +36,49 @@ final class Profiles {
 
     private static Set<String> presetOf(String name) {
         return switch (name) {
-            case "Sword PvP" -> set("fps", "cps", "keys", "armor", "combo", "target", "sprint", "boost");
-            case "Crystal PvP" -> set("fps", "cps", "ping", "armor", "items", "sprint", "boost");
-            case "Mace PvP" -> set("fps", "cps", "armor", "mace", "items", "combo", "sprint", "boost");
+            case "Sword PvP" -> set("fps", "cps", "keys", "armor", "combo", "target", "reach", "damage",
+                    "potions", "alerts", "crosshair", "sprint", "boost", "waypoints");
+            case "Crystal PvP" -> set("fps", "ping", "armor", "items", "totempop", "potions", "alerts",
+                    "crosshair", "sprint", "boost", "waypoints");
+            case "Mace PvP" -> set("fps", "armor", "mace", "items", "combo", "damage", "potions", "alerts",
+                    "crosshair", "sprint", "boost", "waypoints");
             default -> null; // Main: modüllerin varsayılanları
         };
+    }
+
+    private static void put(String modId, String key, int v) {
+        Mod m = Mods.byId(modId);
+        if (m == null) return;
+        Setting s = m.s(key);
+        if (s == null) return;
+        s.value = v;
+        s.clamp();
+    }
+
+    /** Her PvP stiline özel ayarlar. */
+    private static void tweak(String name) {
+        switch (name) {
+            case "Sword PvP" -> {
+                put("crosshair", "shape", 0); put("crosshair", "size", 4); put("crosshair", "gap", 3);
+                put("boost", "ent", 0);
+                put("alerts", "hp", 4);
+            }
+            case "Crystal PvP" -> {
+                put("items", "totem", 1); put("items", "crystal", 1); put("items", "obi", 1);
+                put("items", "pearl", 1); put("items", "gap", 1); put("items", "wind", 0);
+                put("crosshair", "shape", 1); put("crosshair", "size", 4);
+                put("boost", "ent", 1);
+                put("alerts", "hp", 5); put("alerts", "armorPct", 30);
+            }
+            case "Mace PvP" -> {
+                put("items", "totem", 1); put("items", "crystal", 0); put("items", "obi", 0);
+                put("items", "pearl", 1); put("items", "gap", 0); put("items", "wind", 1);
+                put("crosshair", "shape", 4); put("crosshair", "size", 3); put("crosshair", "gap", 3);
+                put("boost", "ent", 1);
+                put("alerts", "hp", 5); put("alerts", "armorPct", 25);
+            }
+            default -> {}
+        }
     }
 
     static boolean isBuiltin(String n) { return Arrays.asList(BUILTIN).contains(n); }
@@ -90,12 +130,14 @@ final class Profiles {
             m.resetAll();
             if (on != null) m.enabled = on.contains(m.id);
         }
+        tweak(name);
         return snapshot();
     }
 
     // ---------- dosya ----------
     static void load() {
         JsonObject root = null;
+        int ver = 0;
         try {
             if (Files.exists(path())) root = JsonParser.parseString(Files.readString(path())).getAsJsonObject();
         } catch (Exception e) {
@@ -103,6 +145,7 @@ final class Profiles {
         }
         if (root != null) {
             try {
+                if (root.has("ver")) ver = root.get("ver").getAsInt();
                 if (root.has("global")) {
                     JsonObject go = root.getAsJsonObject("global");
                     for (Setting s : Mods.GLOBAL) if (go.has(s.key)) { s.value = go.get(s.key).getAsInt(); s.clamp(); }
@@ -115,7 +158,8 @@ final class Profiles {
                 }
             } catch (Exception ignored) {}
         }
-        for (String n : BUILTIN) if (!DATA.containsKey(n)) DATA.put(n, preset(n));
+        // Sürüm değiştiyse hazır profilleri yeni içerikle yenile (kendi profillerine dokunmaz)
+        for (String n : BUILTIN) if (!DATA.containsKey(n) || ver < VERSION) DATA.put(n, preset(n));
         if (!DATA.containsKey(current)) current = "Main";
         apply(DATA.get(current));
     }
@@ -123,6 +167,7 @@ final class Profiles {
     private static void write() {
         try {
             JsonObject root = new JsonObject();
+            root.addProperty("ver", VERSION);
             JsonObject go = new JsonObject();
             for (Setting s : Mods.GLOBAL) go.addProperty(s.key, s.value);
             root.add("global", go);
@@ -165,5 +210,34 @@ final class Profiles {
             apply(DATA.get("Main"));
         }
         write();
+    }
+
+    // ---------- dışa / içe aktarma ----------
+    /** Geçerli profili tek satırlık metne çevirir (panoya kopyalanır). */
+    static String export() {
+        JsonObject o = new JsonObject();
+        o.addProperty("gdf", 1);
+        o.addProperty("name", current);
+        o.add("data", snapshot());
+        return COMPACT.toJson(o);
+    }
+
+    /** Panodaki metinden yeni profil oluşturup etkinleştirir. Başarılıysa true. */
+    static boolean importFrom(String text) {
+        try {
+            JsonObject o = JsonParser.parseString(text.trim()).getAsJsonObject();
+            if (!o.has("gdf") || !o.has("data")) return false;
+            int i = 1;
+            while (DATA.containsKey("İçe aktarılan " + i)) i++;
+            String n = "İçe aktarılan " + i;
+            DATA.put(current, snapshot());
+            DATA.put(n, o.getAsJsonObject("data"));
+            current = n;
+            apply(DATA.get(n));
+            write();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

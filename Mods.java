@@ -47,6 +47,7 @@ final class Mods {
         g(Setting.bool("snap", "Editörde ızgaraya yapış", true));
         g(Setting.num("grid", "Izgara boyutu", 1, 20, 1, 4, " px"));
         g(Setting.bool("guides", "Hizalama çizgileri", true));
+        g(Setting.bool("splash", "Açılış animasyonu", true));
     }
 
     static float gscale() { return g("gscale").value / 100f; }
@@ -85,14 +86,16 @@ final class Mods {
         if (now - lastHit > 2000) combo = 0;
         combo++;
         lastHit = now;
+        ExtraMods.onAttack(e);
     }
 
     static void tick(MinecraftClient mc) {
         if (mc.player != null && mc.player.hurtTime > 0) combo = 0;
+        ExtraMods.tick(mc);
     }
 
     // ---------- kayıt ----------
-    private static void add(Mod m, boolean auto) {
+    static void add(Mod m, boolean auto) {
         m.idx = ALL.size();
         m.finish();
         if (auto && m.sColor != null) {
@@ -101,7 +104,7 @@ final class Mods {
         ALL.add(m);
     }
 
-    private static TextMod t(String id, String name, Mod.Cat cat, Item icon, boolean en, int iv,
+    static TextMod t(String id, String name, Mod.Cat cat, Item icon, boolean en, int iv,
                              TextMod.Updater u, Setting... extra) {
         return new TextMod(id, name, cat, icon, en, iv, u, extra);
     }
@@ -162,7 +165,7 @@ final class Mods {
             int cb = System.currentTimeMillis() - lastHit < 2000 ? combo : 0;
             t.autoColor = cb >= 5 ? 0xFF55FF55 : cb >= 3 ? 0xFFFFFF55 : cb >= 1 ? 0xFFFFAA00 : 0xFFFFFFFF;
             t.set(t.fmt("Combo", String.valueOf(cb)));
-        }).at(1, 1, 0, 40), true);
+        }).at(1, 1, 0, 56), true);
 
         add(t("target", "Hedef Bilgisi", Mod.Cat.PVP, Items.TARGET, false, 2, (mc, t) -> {
             String s = "-";
@@ -171,7 +174,7 @@ final class Mods {
                 s = le.getName().getString() + "  " + f(le.getHealth(), 1) + "/" + f(le.getMaxHealth(), 0);
             }
             t.set(t.fmt("Hedef", s));
-        }).at(1, 1, 0, 58), false);
+        }).at(2, 1, 6, -30), false);
 
         add(t("items", "PvP Eşyaları", Mod.Cat.PVP, Items.END_CRYSTAL, false, 10, (mc, t) -> {
             var p = mc.player;
@@ -190,29 +193,58 @@ final class Mods {
                 Setting.bool("obi", "Obsidyen", false), Setting.bool("pearl", "Ender Pearl", true),
                 Setting.bool("gap", "Altın elma", false), Setting.bool("wind", "Rüzgar yükü", false)).at(2, 0, 4, 4), false);
 
-        add(t("mace", "Mace Smash", Mod.Cat.PVP, Items.MACE, false, 2, (mc, t) -> {
-            var p = mc.player;
-            double fd = 0;
-            boolean holding = false;
-            if (p != null) {
-                fd = p.fallDistance;
-                holding = p.getMainHandStack().isOf(Items.MACE);
-            }
-            t.autoColor = fd >= 5 ? 0xFF55FF55 : fd >= 1.5 ? 0xFFFFFF55 : 0xFFFFFFFF;
-            List<String> l = new ArrayList<>();
-            l.add(t.fmt("Düşüş", f(fd, 1) + " b"));
-            if (t.s("hold").on()) l.add(holding ? "Mace elde" : "Mace yok");
-            t.set(l.toArray(new String[0]));
-        }, Setting.bool("hold", "Mace durumunu göster", true)).at(1, 1, 0, 24), false);
 
         // ===== UTILITY =====
         add(new SprintMod(false).at(0, 0, 0, 0), false);
-        add(new BoostMod(false).at(0, 0, 0, 0), false);
         add(new FullbrightMod(false).at(0, 0, 0, 0), false);
         zoom = new ZoomMod(false);
         add(zoom.at(0, 0, 0, 0), false);
         swing = new SlowSwingMod(false);
         add(swing.at(0, 0, 0, 0), false);
+
+        ExtraMods.init();
+        describe();
+    }
+
+    static Mod byId(String id) {
+        for (Mod m : ALL) if (m.id.equals(id)) return m;
+        return null;
+    }
+
+    private static void d(String id, String text) {
+        Mod m = byId(id);
+        if (m != null) m.desc = text;
+    }
+
+    private static void describe() {
+        d("fps", "Anlık FPS değerini gösterir.");
+        d("cps", "Saniyedeki sol ve sağ tık sayısı.");
+        d("keys", "WASD, fare ve boşluk tuşları, basınca animasyonlu.");
+        d("armor", "Zırh parçaları ve dayanıklılık yüzdesi.");
+        d("coords", "Koordinatlar ve baktığın yön.");
+        d("day", "Dünyada kaçıncı gün olduğunu gösterir.");
+        d("ping", "Sunucu gecikmesi.");
+        d("combo", "Üst üste vurduğun hit sayısı.");
+        d("target", "Baktığın canlının adı ve canı.");
+        d("items", "Totem, kristal, pearl gibi eşya sayıları.");
+        d("mace", "Düşüş yüksekliği ve tahmini smash hasarı.");
+        d("sprint", "W'ye basınca otomatik koşar.");
+        d("boost", "Partikül, gölge ve mesafeyi düşürüp FPS kazandırır.");
+        d("fullbright", "Karanlıkta bile her yer aydınlık.");
+        d("zoom", "Tuşa basılı tutunca yakınlaştırır (C).");
+        d("slowswing", "Kol sallama animasyonunu yavaşlatır.");
+        d("speed", "Hareket hızın (blok/saniye).");
+        d("ram", "Kullanılan bellek.");
+        d("clock", "Gerçek saat.");
+        d("itemdur", "Eldeki eşyanın dayanıklılığı.");
+        d("potions", "Aktif iksir etkileri ve kalan süreler.");
+        d("damage", "Son ve toplam verdiğin hasar.");
+        d("reach", "Son vuruşunun mesafesi.");
+        d("totempop", "Kaç totem patlattığını sayar.");
+        d("alerts", "Düşük can, zırh ve totem uyarıları.");
+        d("crosshair", "Özel nişangah: şekil, renk, boyut.");
+        d("waypoints", "Ekranda yön ve mesafe gösteren noktalar. B ile ekle.");
+        d("snaplook", "Tuşa basılı tutunca arkana bakarsın (Sol Alt).");
     }
 
     private static String dir(String d) {
@@ -318,64 +350,6 @@ final class Mods {
             if (mc.options.forwardKey.isPressed() && !p.isSneaking() && !p.isUsingItem()) {
                 mc.options.sprintKey.setPressed(true);
             }
-        }
-    }
-
-    // ================= FPS Boost =================
-    static final class BoostMod extends Mod {
-        private final Setting sPart, sEnt, sBob;
-        // Not: Orijinaller sadece bu oturumda tutulur; boost açıkken oyunu kapatırsanız
-        // options.txt'ye düşük değerler yazılmış olabilir.
-        private String oPart;
-        private Double oEnt;
-        private Boolean oBob;
-
-        BoostMod(boolean en) {
-            super("boost", "FPS Boost", Cat.UTIL, Items.FIREWORK_ROCKET, false, en);
-            sPart = Setting.bool("part", "Partikülleri minimuma indir", true);
-            sEnt = Setting.choice("ent", "Varlık çizim mesafesi", 2, "100%", "75%", "50%");
-            sBob = Setting.bool("bob", "Yürürken sallanmayı kapat", true);
-            add(sPart);
-            add(sEnt);
-            add(sBob);
-        }
-
-        @Override
-        public void onEnable(MinecraftClient mc) {
-            GameOptions o = mc.options;
-            oPart = o.getParticles().getValue().name();
-            oEnt = o.getEntityDistanceScaling().getValue();
-            oBob = o.getBobView().getValue();
-            apply(mc);
-        }
-
-        @Override
-        public void onTick(MinecraftClient mc) {
-            if (HudMod.tick % 40 == 0) apply(mc);
-        }
-
-        private void apply(MinecraftClient mc) {
-            GameOptions o = mc.options;
-            if (sPart.on()) setParticles(o, "MINIMAL");
-            double[] d = {1.0, 0.75, 0.5};
-            o.getEntityDistanceScaling().setValue(d[Math.max(0, Math.min(2, sEnt.value))]);
-            if (sBob.on()) o.getBobView().setValue(false);
-        }
-
-        /** Enum sınıfının adını yazmadan, ada göre partikül modunu ayarlar (sürümler arası güvenli). */
-        private static void setParticles(GameOptions o, String name) {
-            var opt = o.getParticles();
-            for (var e : opt.getValue().getDeclaringClass().getEnumConstants()) {
-                if (e.name().equals(name)) { opt.setValue(e); return; }
-            }
-        }
-
-        @Override
-        public void onDisable(MinecraftClient mc) {
-            GameOptions o = mc.options;
-            if (oPart != null) setParticles(o, oPart);
-            if (oEnt != null) o.getEntityDistanceScaling().setValue(oEnt);
-            if (oBob != null) o.getBobView().setValue(oBob);
         }
     }
 

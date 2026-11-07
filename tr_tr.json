@@ -1,5 +1,7 @@
 {
-  "key.hudmod.editor": "HUD Menusunu Ac",
+  "key.hudmod.editor": "GDF Menusunu Ac",
   "key.hudmod.zoom": "Zoom",
-  "key.category.hudmod.main": "HUD Mod"
+  "key.hudmod.snaplook": "Snaplook (arkaya bak)",
+  "key.hudmod.waypoint": "Waypoint Ekle",
+  "key.category.hudmod.main": "GDF Client"
 }

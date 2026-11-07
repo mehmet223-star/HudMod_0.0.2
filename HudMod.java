@@ -5,9 +5,11 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.client.util.InputUtil;
@@ -15,21 +17,27 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
+/** GDF Client giriş noktası. */
 public class HudMod implements ClientModInitializer {
     public static long tick = 1;
     private static KeyBinding openMenu;
-    public static KeyBinding zoomKey;
+    public static KeyBinding zoomKey, snapKey, wpKey;
 
     @Override
     public void onInitializeClient() {
         Mods.init();
         Profiles.load();
+        Waypoints.load();
 
         KeyBinding.Category cat = KeyBinding.Category.create(Identifier.of("hudmod", "main"));
         openMenu = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.hudmod.editor", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, cat));
         zoomKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.hudmod.zoom", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_C, cat));
+        snapKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.hudmod.snaplook", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_ALT, cat));
+        wpKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.hudmod.waypoint", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_B, cat));
 
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hit) -> {
             if (world.isClient()) Mods.onAttack(entity);
@@ -39,6 +47,26 @@ public class HudMod implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(HudMod::onTick);
         HudElementRegistry.attachElementAfter(VanillaHudElements.MISC_OVERLAYS,
                 Identifier.of("hudmod", "hud"), HudMod::renderHud);
+
+        // Özel crosshair: açıksa vanilla crosshair yerine bizimki çizilir
+        HudElementRegistry.replaceElement(VanillaHudElements.CROSSHAIR, orig -> (c, tc) -> {
+            if (ExtraMods.cross != null && ExtraMods.cross.active) {
+                var mc = MinecraftClient.getInstance();
+                if (!mc.options.hudHidden) {
+                    ExtraMods.cross.draw(c, mc.getWindow().getScaledWidth(), mc.getWindow().getScaledHeight());
+                }
+            } else {
+                orig.render(c, tc);
+            }
+        });
+
+        // Açılış animasyonu: ilk ana menüde bir kez oynar
+        ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
+            if (screen instanceof TitleScreen && Splash.shouldShow()) {
+                ScreenEvents.afterRender(screen).register((s, c, mx, my, d) ->
+                        Splash.render(c, client.textRenderer, s.width, s.height));
+            }
+        });
     }
 
     private static boolean ours(MinecraftClient mc) {
@@ -50,6 +78,9 @@ public class HudMod implements ClientModInitializer {
         CpsTracker.poll(mc);
         if (tick % 10 == 0) FrameStats.compute();
         while (openMenu.wasPressed()) mc.setScreen(new ModMenuScreen(null));
+        while (wpKey.wasPressed()) {
+            if (mc.player != null && mc.world != null && mc.currentScreen == null) Waypoints.addHere(mc, null, false);
+        }
         Mods.tick(mc);
 
         boolean perf = Mods.g("perf").on();
@@ -75,6 +106,10 @@ public class HudMod implements ClientModInitializer {
         if (mc.options.hudHidden || ours(mc)) return;
 
         int sw = mc.getWindow().getScaledWidth(), sh = mc.getWindow().getScaledHeight();
+
+        if (ExtraMods.alerts != null && ExtraMods.alerts.active) ExtraMods.alerts.render(c, mc.textRenderer, sw, sh);
+        if (ExtraMods.waypoints != null && ExtraMods.waypoints.active) ExtraMods.waypoints.render(c, mc, sw, sh);
+
         for (Mod m : Mods.ALL) {
             if (!m.hud || m.anim < 0.03f) continue;
             if (!m.ready) m.update(mc);

@@ -19,6 +19,7 @@ public abstract class Mod {
     }
 
     public final String id, name;
+    public String desc = "";
     public final Cat cat;
     public final ItemStack icon;
     public final boolean hud;
