@@ -1,6 +1,7 @@
 package com.example.hudmod;
 
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
@@ -45,6 +46,9 @@ public class HudMod implements ClientModInitializer {
         });
 
         ClientTickEvents.END_CLIENT_TICK.register(HudMod::onTick);
+        ClientLifecycleEvents.CLIENT_STOPPING.register(cl -> {
+            if (Mods.zoom != null) Mods.zoom.restore(cl);
+        });
         HudElementRegistry.attachElementAfter(VanillaHudElements.MISC_OVERLAYS,
                 Identifier.of("hudmod", "hud"), HudMod::renderHud);
 
@@ -102,6 +106,7 @@ public class HudMod implements ClientModInitializer {
         MinecraftClient mc = MinecraftClient.getInstance();
         Anim.frame();
         FrameStats.frame();
+        if (Mods.zoom != null && Mods.zoom.active) Mods.zoom.frame(mc);
         for (Mod m : Mods.ALL) m.anim = Anim.to(m.anim, m.enabled ? 1f : 0f, 14f);
         if (mc.options.hudHidden || ours(mc)) return;
 

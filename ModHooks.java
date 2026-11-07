@@ -6,9 +6,9 @@ import net.minecraft.client.MinecraftClient;
 public final class ModHooks {
     private ModHooks() {}
 
-    /** FOV çarpanı: 1 = normal, <1 = yakınlaştırma. */
+    /** Zoom artık FOV ayarını doğrudan değiştirerek çalışıyor; bu kanca etkisiz (1 = değişiklik yok). */
     public static float fovMul() {
-        return Mods.zoom != null && Mods.zoom.active ? Mods.zoom.fovMul() : 1f;
+        return 1f;
     }
 
     /** Sadece yerel oyuncunun kol sallama süresini uzatır. */

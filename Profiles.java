@@ -202,6 +202,46 @@ final class Profiles {
         write();
     }
 
+    static String nextName() {
+        int i = 1;
+        while (DATA.containsKey("Profil " + i)) i++;
+        return "Profil " + i;
+    }
+
+    private static String uniq(String n) {
+        n = n.trim();
+        if (n.isEmpty()) n = "Profil";
+        String base = n;
+        int i = 2;
+        while (DATA.containsKey(n)) n = base + " " + i++;
+        return n;
+    }
+
+    /** Verilen adla yeni profil oluşturur (geçerli durumun kopyası) ve ona geçer. */
+    static void saveAsNew(String name) {
+        String n = uniq(name);
+        DATA.put(current, snapshot());
+        DATA.put(n, snapshot());
+        current = n;
+        write();
+    }
+
+    /** Kendi profilinin adını değiştirir. Hazır profiller değiştirilemez. */
+    static boolean rename(String old, String nu) {
+        nu = nu.trim();
+        if (nu.isEmpty() || isBuiltin(old) || !DATA.containsKey(old)) return false;
+        if (nu.equals(old)) return true;
+        if (old.equals(current)) DATA.put(current, snapshot());
+        nu = uniq(nu);
+        Map<String, JsonObject> copy = new LinkedHashMap<>();
+        for (Map.Entry<String, JsonObject> e : DATA.entrySet()) copy.put(e.getKey().equals(old) ? nu : e.getKey(), e.getValue());
+        DATA.clear();
+        DATA.putAll(copy);
+        if (current.equals(old)) current = nu;
+        write();
+        return true;
+    }
+
     static void delete(String name) {
         if (isBuiltin(name) || !DATA.containsKey(name)) return;
         DATA.remove(name);

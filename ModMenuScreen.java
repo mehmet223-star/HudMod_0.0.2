@@ -3,6 +3,7 @@ package com.example.hudmod;
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
@@ -30,6 +31,10 @@ public class ModMenuScreen extends Screen {
     private int pw, ph, px, py, side, gx, gy, gw, gh, cols, cardW;
     private String flash = "";
     private long flashUntil;
+    private TextFieldWidget field;
+    private int editKind, editColor;
+    private String editTarget = "";
+    private Waypoints.WP editWp;
 
     public ModMenuScreen(Mod opt) {
         super(Text.literal("GDF Client"));
@@ -117,6 +122,83 @@ public class ModMenuScreen extends Screen {
         return hov;
     }
 
+    // ---------- isim düzenleme penceresi ----------
+    /** kind: 1 yeni profil adı, 2 profil adı değiştir, 3 waypoint düzenle. */
+    private void openEdit(int kind, String initial) {
+        editKind = kind;
+        int x = width / 2 - 100, y = height / 2 - 44;
+        field = new TextFieldWidget(textRenderer, x + 10, y + 22, 180, 16, Text.literal(""));
+        field.setMaxLength(24);
+        field.setText(initial);
+        addDrawableChild(field);
+        setFocused(field);
+        field.setFocused(true);
+    }
+
+    private void closeEdit() {
+        if (field != null) remove(field);
+        field = null;
+        editKind = 0;
+        setFocused(null);
+    }
+
+    private void commitEdit() {
+        String s = field.getText().trim();
+        switch (editKind) {
+            case 1 -> { Profiles.saveAsNew(s.isEmpty() ? Profiles.nextName() : s); toast("Profil oluşturuldu"); }
+            case 2 -> { if (!s.isEmpty() && Profiles.rename(editTarget, s)) toast("Profil adı değişti"); }
+            case 3 -> {
+                if (editWp != null) {
+                    if (!s.isEmpty()) editWp.name = s;
+                    editWp.color = editColor;
+                    Waypoints.save();
+                    toast("Waypoint güncellendi");
+                }
+            }
+            default -> {}
+        }
+        closeEdit();
+    }
+
+    private void renderEdit(DrawContext c, int mx, int my) {
+        if (editKind == 0 || field == null) return;
+        c.fill(0, 0, width, height, 0xB0000000);
+        int w = 200, x = width / 2 - 100, y = height / 2 - 44, by = y + (editKind == 3 ? 66 : 46);
+        Gfx.rrect(c, x, y, w, by + 26 - y, 0xFF111318, true);
+        c.fill(x + 8, y, x + w - 8, y + 1, acc());
+        String title = editKind == 1 ? "YENİ PROFİL ADI" : editKind == 2 ? "PROFİL ADINI DEĞİŞTİR" : "WAYPOINT DÜZENLE";
+        Ui.spaced(c, textRenderer, title, x + 10, y + 8, TEXT, false);
+        field.render(c, mx, my, 0f);
+        if (editKind == 3) {
+            for (int i = 0; i < Waypoints.PALETTE.length; i++) {
+                int col = Waypoints.PALETTE[i];
+                Gfx.rrect(c, x + 10 + i * 18, y + 44, 12, 12, col, true);
+                if (col == editColor) Gfx.border(c, x + 9 + i * 18, y + 43, 14, 14, 0xFFFFFFFF);
+            }
+        }
+        btn(c, x + 10, by, 86, 16, "TAMAM", GREEN, mx, my);
+        btn(c, x + 104, by, 86, 16, "İPTAL", BTN, mx, my);
+    }
+
+    private boolean editClick(Click click, boolean doubled) {
+        double mx = click.x(), my = click.y();
+        int x = width / 2 - 100, y = height / 2 - 44, by = y + (editKind == 3 ? 66 : 46);
+        if (Gfx.in(mx, my, x + 10, y + 22, 180, 16)) {
+            field.mouseClicked(click, doubled);
+            setFocused(field);
+            field.setFocused(true);
+            return true;
+        }
+        if (editKind == 3) {
+            for (int i = 0; i < Waypoints.PALETTE.length; i++) {
+                if (Gfx.in(mx, my, x + 10 + i * 18, y + 44, 12, 12)) { editColor = Waypoints.PALETTE[i]; click(); return true; }
+            }
+        }
+        if (Gfx.in(mx, my, x + 10, by, 86, 16)) { click(); commitEdit(); return true; }
+        if (Gfx.in(mx, my, x + 104, by, 86, 16)) { click(); closeEdit(); return true; }
+        return true;
+    }
+
     // ---------- çizim ----------
     @Override
     public void render(DrawContext c, int mx, int my, float delta) {
@@ -170,6 +252,7 @@ public class ModMenuScreen extends Screen {
             Gfx.rrect(c, px + pw / 2 - w / 2, py + ph - 22, w, 14, ca(0xF0000000 | (acc() & 0xFFFFFF)), true);
             Gfx.center(c, textRenderer, flash, px + pw / 2, py + ph - 19, ca(0xFFFFFFFF), false);
         }
+        renderEdit(c, mx, my);
         m.popMatrix();
     }
 
@@ -183,8 +266,12 @@ public class ModMenuScreen extends Screen {
             boolean sel = n.equals(Profiles.current), hov = Gfx.in(mx, my, sx + 3, ry, side - 6, 14);
             if (sel) Gfx.rrect(c, sx + 3, ry, side - 6, 14, ca(Anim.mix(BTN, acc(), 0.5f)), true);
             else if (hov) Gfx.rrect(c, sx + 3, ry, side - 6, 14, ca(BTN), true);
-            c.drawText(textRenderer, textRenderer.trimToWidth(n, side - 24), sx + 7, ry + 3, ca(sel ? TEXT : DIM), false);
-            if (!Profiles.isBuiltin(n) && hov) c.drawText(textRenderer, "x", sx + side - 12, ry + 3, ca(0xFFFF6B6B), false);
+            boolean custom = !Profiles.isBuiltin(n);
+            c.drawText(textRenderer, textRenderer.trimToWidth(n, side - (custom ? 40 : 14)), sx + 7, ry + 3, ca(sel ? TEXT : DIM), false);
+            if (custom) {
+                c.drawText(textRenderer, "R", sx + side - 25, ry + 3, ca(0xFF9AA3B5), false);
+                c.drawText(textRenderer, "x", sx + side - 12, ry + 3, ca(0xFFFF6B6B), false);
+            }
             ry += 16;
         }
         btn(c, sx + 3, sy + shh - 40, side - 6, 16, "YENİ PROFİL", BTN, mx, my);
@@ -262,16 +349,17 @@ public class ModMenuScreen extends Screen {
             if (y + WROW < gy || y > gy + gh) continue;
             Gfx.rrect(c, gx, y, gw - 6, WROW - 3, ca(CARD), true);
             Gfx.rrect(c, gx + 6, y + 6, 10, 10, ca(w.color), true);
-            c.drawText(textRenderer, textRenderer.trimToWidth(w.name, Math.max(30, gw - 150)), gx + 22, y + 3, ca(TEXT), false);
+            c.drawText(textRenderer, textRenderer.trimToWidth(w.name, Math.max(30, gw - 190)), gx + 22, y + 3, ca(TEXT), false);
             String sub = w.x + " " + w.y + " " + w.z;
             if (client.player != null && client.world != null && w.dim.equals(Waypoints.dimOf(client))) {
                 double dx = w.x + 0.5 - client.player.getX(), dy = w.y - client.player.getY(), dz = w.z + 0.5 - client.player.getZ();
                 sub += "  -  " + (int) Math.sqrt(dx * dx + dy * dy + dz * dz) + "m";
             }
             c.drawText(textRenderer, sub, gx + 22, y + 13, ca(DIM), false);
-            int bx = gx + gw - 6 - 4 - 28 - 4 - 50;
-            btn(c, bx, y + 4, 50, 14, w.show ? "GİZLE" : "GÖSTER", BTN, mx, my);
-            btn(c, bx + 54, y + 4, 28, 14, "SİL", RED, mx, my);
+            int bx = gx + gw - 152;
+            btn(c, bx, y + 4, 56, 14, "DÜZENLE", BTN, mx, my);
+            btn(c, bx + 60, y + 4, 50, 14, w.show ? "GİZLE" : "GÖSTER", BTN, mx, my);
+            btn(c, bx + 114, y + 4, 28, 14, "SİL", RED, mx, my);
         }
         c.disableScissor();
         scrollbar(c);
@@ -340,6 +428,7 @@ public class ModMenuScreen extends Screen {
         double mx = click.x(), my = click.y();
         int b = click.button();
         layout();
+        if (editKind != 0) return editClick(click, doubled);
 
         if (Gfx.in(mx, my, px + pw - 22, py + 8, 14, 14)) { click(); close(); return true; }
 
@@ -362,13 +451,15 @@ public class ModMenuScreen extends Screen {
             if (ry > sy + shh - 52) break;
             if (Gfx.in(mx, my, sx + 3, ry, side - 6, 14)) {
                 click();
-                if (!Profiles.isBuiltin(n) && mx >= sx + side - 16 && b == 0) Profiles.delete(n);
+                boolean custom = !Profiles.isBuiltin(n);
+                if (custom && mx >= sx + side - 16 && b == 0) Profiles.delete(n);
+                else if (custom && (b == 1 || mx >= sx + side - 30)) { editTarget = n; openEdit(2, n); }
                 else Profiles.switchTo(n);
                 return true;
             }
             ry += 16;
         }
-        if (Gfx.in(mx, my, sx + 3, sy + shh - 40, side - 6, 16)) { click(); Profiles.saveAsNew(); toast("Yeni profil oluşturuldu"); return true; }
+        if (Gfx.in(mx, my, sx + 3, sy + shh - 40, side - 6, 16)) { click(); openEdit(1, Profiles.nextName()); return true; }
         if (Gfx.in(mx, my, sx + 3, sy + shh - 20, side - 6, 16)) { click(); client.setScreen(new HudEditScreen()); return true; }
 
         if (grid()) {
@@ -401,9 +492,10 @@ public class ModMenuScreen extends Screen {
                 List<Waypoints.WP> l = Waypoints.list(client);
                 for (int i = 0; i < l.size(); i++) {
                     int y = gy + 2 + i * WROW - Math.round(scroll);
-                    int bx = gx + gw - 6 - 4 - 28 - 4 - 50;
-                    if (Gfx.in(mx, my, bx, y + 4, 50, 14)) { click(); l.get(i).show = !l.get(i).show; Waypoints.save(); return true; }
-                    if (Gfx.in(mx, my, bx + 54, y + 4, 28, 14)) { click(); Waypoints.remove(l.get(i)); return true; }
+                    int bx = gx + gw - 152;
+                    if (Gfx.in(mx, my, bx, y + 4, 56, 14)) { click(); editWp = l.get(i); editColor = editWp.color; openEdit(3, editWp.name); return true; }
+                    if (Gfx.in(mx, my, bx + 60, y + 4, 50, 14)) { click(); l.get(i).show = !l.get(i).show; Waypoints.save(); return true; }
+                    if (Gfx.in(mx, my, bx + 114, y + 4, 28, 14)) { click(); Waypoints.remove(l.get(i)); toast("Waypoint silindi"); return true; }
                 }
                 dragScroll = true;
             }

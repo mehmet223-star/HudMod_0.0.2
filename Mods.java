@@ -426,17 +426,58 @@ final class Mods {
         public void onDisable(MinecraftClient mc) {
             want = false;
             toggled = false;
+            restore(mc);
+        }
+
+        private static java.lang.reflect.Field vf;
+        private int origFov = -1;
+        private boolean applied;
+
+        /** FOV seçeneğinin değerini doğrulamayı atlayarak yazar (alan, türüne göre bulunur: sürümden bağımsız). */
+        private static void setFov(Object opt, int v) {
+            try {
+                if (vf == null) {
+                    for (var f : opt.getClass().getDeclaredFields()) {
+                        if (f.getType() == Object.class && !java.lang.reflect.Modifier.isFinal(f.getModifiers())
+                                && !java.lang.reflect.Modifier.isStatic(f.getModifiers())) {
+                            f.setAccessible(true);
+                            vf = f;
+                            break;
+                        }
+                    }
+                }
+                if (vf != null) vf.set(opt, Integer.valueOf(v));
+            } catch (Exception ignored) {}
+        }
+
+        /** Her karede çağrılır: yumuşak zoom için FOV'u günceller. */
+        void frame(MinecraftClient mc) {
+            var opt = mc.options.getFov();
+            float target = want ? 1f : 0f;
+            t = sSmooth.on() ? Anim.to(t, target, 14f) : target;
+            if (!applied) {
+                if (t <= 0.001f) return;
+                origFov = opt.getValue();
+                applied = true;
+            }
+            setFov(opt, Math.max(2, Math.round(origFov * (1f + (1f / sZoom.value - 1f) * t))));
+            if (t <= 0.001f && !want) {
+                setFov(opt, origFov);
+                applied = false;
+            }
+        }
+
+        /** FOV ve hassasiyeti eski haline getirir (kapatırken ve oyundan çıkarken). */
+        void restore(MinecraftClient mc) {
+            if (applied) {
+                setFov(mc.options.getFov(), origFov);
+                applied = false;
+            }
             t = 0;
             if (origSens >= 0) {
                 mc.options.getMouseSensitivity().setValue(origSens);
                 origSens = -1;
             }
-        }
-
-        float fovMul() {
-            float target = want ? 1f : 0f;
-            t = sSmooth.on() ? Anim.to(t, target, 14f) : target;
-            return 1f + (1f / sZoom.value - 1f) * t;
         }
     }
 

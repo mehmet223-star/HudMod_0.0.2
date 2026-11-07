@@ -27,7 +27,7 @@ final class Waypoints {
 
     static final List<WP> ALL = new ArrayList<>();
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final int[] PALETTE = {0xFF55FF55, 0xFF55FFFF, 0xFFFFFF55, 0xFFFF55FF, 0xFFFFAA00, 0xFF5599FF};
+    static final int[] PALETTE = {0xFF55FF55, 0xFF55FFFF, 0xFFFFFF55, 0xFFFF55FF, 0xFFFFAA00, 0xFF5599FF};
 
     private static Path path() { return FabricLoader.getInstance().getConfigDir().resolve("gdf_waypoints.json"); }
 

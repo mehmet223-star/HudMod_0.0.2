@@ -5,11 +5,13 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 
-/** HUD düzen editörü: sürükle-bırak, ızgaraya yapışma, hizalama çizgileri, tekerlekle boyut. */
+/** HUD düzen editörü: sürükle-bırak, yapışma, hizalama çizgileri, sağ tık menüsü (boyut / ayarlar / kapat). */
 public class HudEditScreen extends Screen {
-    private Mod drag;
+    private static final int PW = 132, PH = 40;
+
+    private Mod drag, pop;
     private double grabX, grabY;
-    private int curX, curY, guideX = -1, guideY = -1;
+    private int curX, curY, guideX = -1, guideY = -1, popX, popY;
 
     public HudEditScreen() {
         super(Text.literal("HUD Düzeni"));
@@ -25,9 +27,12 @@ public class HudEditScreen extends Screen {
     /** Oyunun blur arka planını kapatır. Derleme hatası verirse silin. */
     @Override public void renderBackground(DrawContext c, int mx, int my, float delta) {}
 
-    /** ESC: ana menüye dön. */
+    /** ESC: önce menüyü kapat, sonra ana menüye dön. */
     @Override
-    public void close() { client.setScreen(new ModMenuScreen(null)); }
+    public void close() {
+        if (pop != null) { pop = null; return; }
+        client.setScreen(new ModMenuScreen(null));
+    }
 
     private Mod hit(double mx, double my) {
         for (int i = Mods.ALL.size() - 1; i >= 0; i--) {
@@ -37,6 +42,12 @@ public class HudEditScreen extends Screen {
         return null;
     }
 
+    private void small(DrawContext c, int x, int y, int w, int h, String t, int mx, int my) {
+        boolean hov = Gfx.in(mx, my, x, y, w, h);
+        Gfx.rrect(c, x, y, w, h, hov ? 0xFF3A4150 : 0xFF262B36, true);
+        Ui.spacedCenter(c, textRenderer, t, x + w / 2, y + (h - 8) / 2 + 1, 0xFFFFFFFF, false);
+    }
+
     @Override
     public void render(DrawContext c, int mx, int my, float delta) {
         Anim.frame();
@@ -44,13 +55,13 @@ public class HudEditScreen extends Screen {
         c.fill(width / 2, 0, width / 2 + 1, height, 0x22FFFFFF);
         c.fill(0, height / 2, width, height / 2 + 1, 0x22FFFFFF);
 
-        Mod hover = drag == null ? hit(mx, my) : null;
+        Mod hover = drag == null && pop == null ? hit(mx, my) : null;
         for (Mod m : Mods.ALL) {
             if (!m.hud || !m.enabled) continue;
             if (!m.ready) m.update(client);
             int x = m == drag ? curX : m.px(width), y = m == drag ? curY : m.py(height);
             m.render(c, textRenderer, x, y, true);
-            int col = m == drag ? 0xFFFFFF55 : m == hover ? Mods.accent() : 0x66FFFFFF;
+            int col = m == drag ? 0xFFFFFF55 : (m == hover || m == pop) ? Mods.accent() : 0x66FFFFFF;
             Gfx.border(c, x, y, m.sw(), m.sh(), col);
         }
 
@@ -58,6 +69,7 @@ public class HudEditScreen extends Screen {
             if (guideX >= 0) c.fill(guideX, 0, guideX + 1, height, 0xAAFF55FF);
             if (guideY >= 0) c.fill(0, guideY, width, guideY + 1, 0xAAFF55FF);
         }
+
         if (hover != null) {
             String tip = hover.name;
             int tw = textRenderer.getWidth(tip) + 8;
@@ -68,7 +80,17 @@ public class HudEditScreen extends Screen {
             c.drawText(textRenderer, tip, tx + 4, ty + 2, 0xFF55FFFF, false);
         }
 
-        Gfx.center(c, textRenderer, "Sürükle: taşı  |  Tekerlek: boyut  |  Sağ tık: ayarlar  |  Orta tık: kapat  |  ESC: menü",
+        if (pop != null) {
+            Gfx.rrect(c, popX, popY, PW, PH, 0xF2101218, true);
+            c.fill(popX + 6, popY, popX + PW - 6, popY + 1, Mods.accent());
+            small(c, popX + 6, popY + 5, 22, 14, "-", mx, my);
+            small(c, popX + PW - 28, popY + 5, 22, 14, "+", mx, my);
+            Gfx.center(c, textRenderer, pop.name + "  " + pop.sScale.value + "%", popX + PW / 2, popY + 9, 0xFFFFFFFF, false);
+            small(c, popX + 6, popY + 23, 58, 12, "AYARLAR", mx, my);
+            small(c, popX + 68, popY + 23, 58, 12, "KAPAT", mx, my);
+        }
+
+        Gfx.center(c, textRenderer, "Sürükle: taşı  |  Sağ tık: boyut ve ayarlar  |  Tekerlek: boyut  |  ESC: menü",
                 width / 2, 6, 0xFFFFFFFF, true);
 
         int bw = 70, bx = width / 2 - bw / 2, by = height - 22;
@@ -80,7 +102,21 @@ public class HudEditScreen extends Screen {
     @Override
     public boolean mouseClicked(Click click, boolean doubled) {
         double mx = click.x(), my = click.y();
-        if (Gfx.in(mx, my, width / 2 - 35, height - 22, 70, 16)) { close(); return true; }
+
+        if (pop != null) {
+            if (Gfx.in(mx, my, popX, popY, PW, PH)) {
+                Setting s = pop.sScale;
+                if (Gfx.in(mx, my, popX + 6, popY + 5, 22, 14)) { s.value -= s.step; s.clamp(); }
+                else if (Gfx.in(mx, my, popX + PW - 28, popY + 5, 22, 14)) { s.value += s.step; s.clamp(); }
+                else if (Gfx.in(mx, my, popX + 6, popY + 23, 58, 12)) { Mod m = pop; pop = null; client.setScreen(new ModMenuScreen(m)); }
+                else if (Gfx.in(mx, my, popX + 68, popY + 23, 58, 12)) { pop.toggle(); pop = null; }
+                return true;
+            }
+            pop = null; // dışarı tıklayınca kapat
+        }
+
+        if (Gfx.in(mx, my, width / 2 - 35, height - 22, 70, 16)) { client.setScreen(new ModMenuScreen(null)); return true; }
+
         Mod m = hit(mx, my);
         if (m != null) {
             switch (click.button()) {
@@ -91,7 +127,12 @@ public class HudEditScreen extends Screen {
                     grabX = mx - curX;
                     grabY = my - curY;
                 }
-                case 1 -> client.setScreen(new ModMenuScreen(m));
+                case 1 -> {
+                    pop = m;
+                    popX = Math.max(4, Math.min(width - PW - 4, m.px(width)));
+                    popY = m.py(height) + m.sh() + 4;
+                    if (popY + PH > height - 4) popY = Math.max(4, m.py(height) - PH - 4);
+                }
                 case 2 -> m.toggle();
                 default -> {}
             }
@@ -145,7 +186,7 @@ public class HudEditScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mx, double my, double hAmount, double vAmount) {
-        Mod m = drag != null ? drag : hit(mx, my);
+        Mod m = drag != null ? drag : pop != null ? pop : hit(mx, my);
         if (m != null) {
             Setting s = m.sScale;
             s.value += (vAmount > 0 ? 1 : -1) * s.step;
