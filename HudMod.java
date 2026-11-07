@@ -45,6 +45,9 @@ public class HudMod implements ClientModInitializer {
             return ActionResult.PASS;
         });
 
+        ClientTickEvents.START_CLIENT_TICK.register(mc -> {
+            if (ExtraMods.sneak != null && ExtraMods.sneak.active) ExtraMods.sneak.startTick(mc);
+        });
         ClientTickEvents.END_CLIENT_TICK.register(HudMod::onTick);
         ClientLifecycleEvents.CLIENT_STOPPING.register(cl -> {
             if (Mods.zoom != null) Mods.zoom.restore(cl);
@@ -62,6 +65,23 @@ public class HudMod implements ClientModInitializer {
             } else {
                 orig.render(c, tc);
             }
+        });
+
+        // Scoreboard: konum / boyut / gizleme
+        HudElementRegistry.replaceElement(VanillaHudElements.SCOREBOARD, orig -> (c, tc) -> {
+            var sb = ExtraMods.scoreboard;
+            if (sb == null || !sb.active) { orig.render(c, tc); return; }
+            if (!sb.sShow.on()) return;
+            var mc = MinecraftClient.getInstance();
+            int sw = mc.getWindow().getScaledWidth(), sh = mc.getWindow().getScaledHeight();
+            float s = sb.sScale.value / 100f;
+            var m = c.getMatrices();
+            m.pushMatrix();
+            m.translate(sw + sb.sDx.value, sh / 2f + sb.sDy.value);
+            m.scale(s, s);
+            m.translate(-sw, -sh / 2f);
+            orig.render(c, tc);
+            m.popMatrix();
         });
 
         // Açılış animasyonu: ilk ana menüde bir kez oynar

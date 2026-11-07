@@ -31,7 +31,11 @@ final class ExtraMods {
     static CrossMod cross;
 
     static double lastReach, lastDamage, totalDamage;
-    static int pops;
+    static int pops, kills, deaths;
+    private static boolean wasDead;
+    private static final java.util.Map<LivingEntity, Long> hunted = new java.util.HashMap<>();
+    static SneakMod sneak;
+    static ScoreboardMod scoreboard;
 
     private static LivingEntity pend;
     private static float pendHp;
@@ -51,6 +55,7 @@ final class ExtraMods {
             pend = le;
             pendHp = le.getHealth() + le.getAbsorptionAmount();
             pendTick = HudMod.tick;
+            hunted.put(le, HudMod.tick);
         }
     }
 
@@ -60,6 +65,21 @@ final class ExtraMods {
             float d = pendHp - now;
             if (d > 0) { lastDamage = d; totalDamage += d; }
             pend = null;
+        }
+        var p = mc.player;
+        if (p != null) {
+            boolean d = p.isDead() || p.getHealth() <= 0f;
+            if (d && !wasDead) deaths++;
+            wasDead = d;
+        }
+        if (!hunted.isEmpty()) {
+            var it = hunted.entrySet().iterator();
+            while (it.hasNext()) {
+                var e = it.next();
+                LivingEntity le = e.getKey();
+                if (le.isDead() || le.getHealth() <= 0f) { kills++; it.remove(); }
+                else if (HudMod.tick - e.getValue() > 100) it.remove();
+            }
         }
     }
 
@@ -143,6 +163,9 @@ final class ExtraMods {
         }, Setting.bool("dmg", "Tahmini smash hasarı", true), Setting.bool("wind", "Rüzgar yükü sayısı", true),
                 Setting.bool("hold", "Mace durumunu göster", true)).at(1, 1, 0, 24), false);
 
+        Mods.add(new StatsMod(false).at(2, 1, 6, 66), false);
+        Mods.add(new GraphMod(false).at(0, 0, 4, 168), true);
+
         alerts = new AlertsMod(false);
         Mods.add(alerts.at(0, 0, 0, 0), false);
 
@@ -153,7 +176,120 @@ final class ExtraMods {
         waypoints = new WaypointsMod(true);
         Mods.add(waypoints.at(0, 0, 0, 0), false);
         Mods.add(new SnapMod(false).at(0, 0, 0, 0), false);
+        sneak = new SneakMod(false);
+        Mods.add(sneak.at(0, 0, 0, 0), false);
+        scoreboard = new ScoreboardMod(false);
+        Mods.add(scoreboard.at(0, 0, 0, 0), false);
         Mods.add(new BoostMod(false).at(0, 0, 0, 0), false);
+    }
+
+    // ================= K/D istatistik =================
+    static final class StatsMod extends TextMod {
+        StatsMod(boolean en) {
+            super("stats", "K/D İstatistik", Cat.PVP, Items.NETHERITE_SWORD, en, 10, (mc, t) -> {
+                List<String> l = new ArrayList<>();
+                l.add(t.fmt("Kill", String.valueOf(kills)));
+                l.add(t.fmt("Ölüm", String.valueOf(deaths)));
+                if (t.s("kd").on()) l.add(t.fmt("K/D", Mods.f(deaths == 0 ? kills : kills / (double) deaths, 2)));
+                t.set(l.toArray(new String[0]));
+            }, Setting.bool("kd", "K/D oranını göster", true));
+        }
+
+        @Override
+        public void onEnable(MinecraftClient mc) {
+            kills = 0;
+            deaths = 0;
+            hunted.clear();
+        }
+    }
+
+    // ================= FPS grafiği =================
+    static final class GraphMod extends Mod {
+        private final Setting sW, sH, sNum;
+
+        GraphMod(boolean en) {
+            super("fpsgraph", "FPS Grafiği", Cat.HUD, Items.PAINTING, true, en);
+            interval = 2;
+            sW = Setting.num("w", "Genişlik", 40, 120, 10, 100, " px");
+            sH = Setting.num("h", "Yükseklik", 20, 80, 5, 36, " px");
+            sNum = Setting.bool("num", "FPS sayısını göster", true);
+            add(sW);
+            add(sH);
+            add(sNum);
+            cw = 100;
+            ch = 36;
+        }
+
+        @Override
+        protected void refresh(MinecraftClient mc) {
+            cw = sW.value;
+            ch = sH.value;
+        }
+
+        private static int barH(float ms, int h) { return (int) Math.min(h, Math.max(1, ms / 33.3f * h)); }
+
+        private static int barCol(float ms, boolean auto, int color) {
+            if (!auto) return color;
+            return ms <= 16.7f ? 0xFF55FF55 : ms <= 33.4f ? 0xFFFFFF55 : 0xFFFF5555;
+        }
+
+        @Override
+        protected void content(DrawContext c, TextRenderer tr, int x, int y, int color, boolean shadow) {
+            boolean auto = sColor.value == Setting.AUTO;
+            int w = cw, h = ch, i = 0;
+            // aynı yükseklik ve renkteki yan yana çubuklar tek fill ile çizilir
+            while (i < w) {
+                float ms = FrameStats.get(w - 1 - i);
+                if (ms <= 0) { i++; continue; }
+                int bh = barH(ms, h), col = fa(barCol(ms, auto, color));
+                int j = i + 1;
+                while (j < w) {
+                    float m2 = FrameStats.get(w - 1 - j);
+                    if (m2 <= 0 || barH(m2, h) != bh || fa(barCol(m2, auto, color)) != col) break;
+                    j++;
+                }
+                c.fill(x + i, y + h - bh, x + j, y + h, col);
+                i = j;
+            }
+            if (sNum.on()) Ui.text(c, tr, String.valueOf(MinecraftClient.getInstance().getCurrentFps()), x + 2, y + 1, color, true);
+        }
+    }
+
+    // ================= Toggle Sneak =================
+    static final class SneakMod extends Mod {
+        private boolean toggled;
+
+        SneakMod(boolean en) {
+            super("togglesneak", "Toggle Sneak", Cat.UTIL, Items.LEATHER_LEGGINGS, false, en);
+        }
+
+        /** Tick başında çağrılır (girdi okunmadan önce). Tuşa her basış durumu tersine çevirir. */
+        void startTick(MinecraftClient mc) {
+            var k = mc.options.sneakKey;
+            if (mc.player == null || mc.currentScreen != null) return;
+            while (k.wasPressed()) toggled = !toggled;
+            k.setPressed(toggled);
+        }
+
+        @Override
+        public void onDisable(MinecraftClient mc) {
+            toggled = false;
+            mc.options.sneakKey.setPressed(false);
+        }
+    }
+
+    // ================= Scoreboard =================
+    static final class ScoreboardMod extends Mod {
+        final Setting sShow, sScale, sDx, sDy;
+
+        ScoreboardMod(boolean en) {
+            super("scoreboard", "Scoreboard", Cat.HUD, Items.OAK_SIGN, false, en);
+            sShow = Setting.bool("show", "Göster", true);
+            sScale = Setting.num("scale", "Boyut", 50, 150, 10, 100, "%");
+            sDx = Setting.num("dx", "Yatay kaydır", -150, 150, 5, 0, " px");
+            sDy = Setting.num("dy", "Dikey kaydır", -150, 150, 5, 0, " px");
+            add(sShow); add(sScale); add(sDx); add(sDy);
+        }
     }
 
     // ================= İksir etkileri =================
@@ -195,7 +331,7 @@ final class ExtraMods {
             for (int i = 0; i < cols.length; i++) cols[i] = c.get(i);
             TextRenderer tr = mc.textRenderer;
             int w = 0;
-            for (int i = 0; i < names.length; i++) w = Math.max(w, tr.getWidth(names[i]) + 10 + tr.getWidth(times[i]));
+            for (int i = 0; i < names.length; i++) w = Math.max(w, Ui.w(tr, names[i]) + 10 + Ui.w(tr, times[i]));
             cw = Math.max(60, w);
             ch = names.length * 10 - 1;
         }
@@ -203,8 +339,8 @@ final class ExtraMods {
         @Override
         protected void content(DrawContext c, TextRenderer tr, int x, int y, int color, boolean shadow) {
             for (int i = 0; i < names.length; i++) {
-                c.drawText(tr, names[i], x, y + i * 10, fa(cols[i]), shadow);
-                if (!times[i].isEmpty()) c.drawText(tr, times[i], x + cw - tr.getWidth(times[i]), y + i * 10, color, shadow);
+                Ui.text(c, tr, names[i], x, y + i * 10, fa(cols[i]), shadow);
+                if (!times[i].isEmpty()) Ui.text(c, tr, times[i], x + cw - Ui.w(tr, times[i]), y + i * 10, color, shadow);
             }
         }
     }
@@ -511,14 +647,14 @@ final class ExtraMods {
                 mat.pushMatrix();
                 mat.translate(px, py - r - 3 - 8 * s);
                 mat.scale(s, s);
-                c.drawText(tr, wp.name, -tr.getWidth(wp.name) / 2, 0, (alpha << 24) | 0xFFFFFF, true);
+                Ui.text(c, tr, wp.name, -Ui.w(tr, wp.name) / 2, 0, (alpha << 24) | 0xFFFFFF, true);
                 mat.popMatrix();
                 if (sDist.on()) {
                     String ds = (int) dist + "m";
                     mat.pushMatrix();
                     mat.translate(px, py + r + 3);
                     mat.scale(s, s);
-                    c.drawText(tr, ds, -tr.getWidth(ds) / 2, 0, (alpha << 24) | 0xC8CCD6, true);
+                    Ui.text(c, tr, ds, -Ui.w(tr, ds) / 2, 0, (alpha << 24) | 0xC8CCD6, true);
                     mat.popMatrix();
                 }
             }

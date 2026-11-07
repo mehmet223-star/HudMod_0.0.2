@@ -31,7 +31,7 @@ public class TextMod extends Mod {
         lines = l;
         TextRenderer tr = MinecraftClient.getInstance().textRenderer;
         int w = 0;
-        for (String s : l) w = Math.max(w, tr.getWidth(s));
+        for (String s : l) w = Math.max(w, Ui.w(tr, s));
         cw = w;
         ch = l.length * 10 - 1;
     }
@@ -41,6 +41,6 @@ public class TextMod extends Mod {
 
     @Override
     protected void content(DrawContext c, TextRenderer tr, int x, int y, int color, boolean shadow) {
-        for (int i = 0; i < lines.length; i++) c.drawText(tr, lines[i], x, y + i * 10, color, shadow);
+        for (int i = 0; i < lines.length; i++) Ui.text(c, tr, lines[i], x, y + i * 10, color, shadow);
     }
 }

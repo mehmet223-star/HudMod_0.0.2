@@ -31,7 +31,7 @@ public class ModMenuScreen extends Screen {
     private int pw, ph, px, py, side, gx, gy, gw, gh, cols, cardW;
     private String flash = "";
     private long flashUntil;
-    private TextFieldWidget field;
+    private TextFieldWidget field, search;
     private int editKind, editColor;
     private String editTarget = "";
     private Waypoints.WP editWp;
@@ -39,6 +39,13 @@ public class ModMenuScreen extends Screen {
     public ModMenuScreen(Mod opt) {
         super(Text.literal("GDF Client"));
         this.opt = opt;
+    }
+
+    @Override
+    protected void init() {
+        search = new TextFieldWidget(textRenderer, 0, 0, 92, 14, Text.literal(""));
+        search.setMaxLength(16);
+        addDrawableChild(search);
     }
 
     @Override public boolean shouldPause() { return false; }
@@ -82,7 +89,12 @@ public class ModMenuScreen extends Screen {
 
     private List<Mod> list() {
         List<Mod> r = new ArrayList<>();
-        for (Mod m : Mods.ALL) if (filter == 0 || m.cat.ordinal() == filter - 1) r.add(m);
+        String q = search == null ? "" : search.getText().trim().toLowerCase();
+        for (Mod m : Mods.ALL) {
+            if (filter != 0 && m.cat.ordinal() != filter - 1) continue;
+            if (!q.isEmpty() && !m.name.toLowerCase().contains(q)) continue;
+            r.add(m);
+        }
         return r;
     }
 
@@ -218,10 +230,10 @@ public class ModMenuScreen extends Screen {
         m.pushMatrix();
         m.translate(px + 12, py + 9);
         m.scale(1.6f, 1.6f);
-        Ui.spaced(c, textRenderer, "GDF", 0, 0, ca(acc()), true);
+        Ui.spacedBold(c, textRenderer, "GDF", 0, 0, ca(acc()), true);
         m.popMatrix();
         if (side >= 90) {
-            int x2 = px + 12 + Math.round(Ui.sw(textRenderer, "GDF") * 1.6f) + 5;
+            int x2 = px + 12 + Math.round(Ui.swBold(textRenderer, "GDF") * 1.6f) + 5;
             Ui.spaced(c, textRenderer, "CLIENT", x2, py + 14, ca(DIM), false);
         }
 
@@ -239,7 +251,7 @@ public class ModMenuScreen extends Screen {
         // kapat
         boolean xh = Gfx.in(mx, my, px + pw - 22, py + 8, 14, 14);
         Gfx.rrect(c, px + pw - 22, py + 8, 14, 14, ca(xh ? RED : BTN), true);
-        Gfx.center(c, textRenderer, "X", px + pw - 15, py + 12, ca(TEXT), false);
+        Ui.center(c, textRenderer, "X", px + pw - 15, py + 12, ca(TEXT), false);
         c.fill(px + 6, py + HEAD - 3, px + pw - 6, py + HEAD - 2, ca(LINE));
 
         renderSidebar(c, mx, my);
@@ -248,9 +260,9 @@ public class ModMenuScreen extends Screen {
         else renderRows(c, mx, my);
 
         if (System.currentTimeMillis() < flashUntil) {
-            int w = textRenderer.getWidth(flash) + 14;
+            int w = Ui.w(textRenderer, flash) + 14;
             Gfx.rrect(c, px + pw / 2 - w / 2, py + ph - 22, w, 14, ca(0xF0000000 | (acc() & 0xFFFFFF)), true);
-            Gfx.center(c, textRenderer, flash, px + pw / 2, py + ph - 19, ca(0xFFFFFFFF), false);
+            Ui.center(c, textRenderer, flash, px + pw / 2, py + ph - 19, ca(0xFFFFFFFF), false);
         }
         renderEdit(c, mx, my);
         m.popMatrix();
@@ -267,10 +279,10 @@ public class ModMenuScreen extends Screen {
             if (sel) Gfx.rrect(c, sx + 3, ry, side - 6, 14, ca(Anim.mix(BTN, acc(), 0.5f)), true);
             else if (hov) Gfx.rrect(c, sx + 3, ry, side - 6, 14, ca(BTN), true);
             boolean custom = !Profiles.isBuiltin(n);
-            c.drawText(textRenderer, textRenderer.trimToWidth(n, side - (custom ? 40 : 14)), sx + 7, ry + 3, ca(sel ? TEXT : DIM), false);
+            Ui.text(c, textRenderer, Ui.fit(textRenderer, n, side - (custom ? 40 : 14)), sx + 7, ry + 3, ca(sel ? TEXT : DIM), false);
             if (custom) {
-                c.drawText(textRenderer, "R", sx + side - 25, ry + 3, ca(0xFF9AA3B5), false);
-                c.drawText(textRenderer, "x", sx + side - 12, ry + 3, ca(0xFFFF6B6B), false);
+                Ui.text(c, textRenderer, "R", sx + side - 25, ry + 3, ca(0xFF9AA3B5), false);
+                Ui.text(c, textRenderer, "x", sx + side - 12, ry + 3, ca(0xFFFF6B6B), false);
             }
             ry += 16;
         }
@@ -288,6 +300,12 @@ public class ModMenuScreen extends Screen {
             cx += w + 4;
         }
 
+        if (search != null && gw >= 290) {
+            search.setX(gx + gw - 94);
+            search.setY(py + HEAD + 4);
+            search.render(c, mx, my, 0f);
+            if (search.getText().isEmpty() && !search.isFocused()) Ui.text(c, textRenderer, "Ara...", gx + gw - 90, py + HEAD + 7, ca(DIM), false);
+        }
         hoverMod = null;
         List<Mod> l = list();
         var mat = c.getMatrices();
@@ -309,7 +327,7 @@ public class ModMenuScreen extends Screen {
             c.drawItem(md.icon, 0, 0);
             mat.popMatrix();
 
-            Gfx.center(c, textRenderer, md.name, x + cardW / 2, y + 42, ca(Anim.mix(DIM, TEXT, md.hover)), false);
+            Ui.center(c, textRenderer, md.name, x + cardW / 2, y + 42, ca(Anim.mix(DIM, TEXT, md.hover)), false);
             btn(c, x + 4, y + 54, cardW - 8, 11, "OPTIONS", BTN, mx, my);
             boolean th = Gfx.in(mx, my, x + 4, y + 66, cardW - 8, 11);
             Gfx.rrect(c, x + 4, y + 66, cardW - 8, 11,
@@ -320,10 +338,10 @@ public class ModMenuScreen extends Screen {
         scrollbar(c);
 
         if (hoverMod != null && hoverMod.hover > 0.85f && !hoverMod.desc.isEmpty()) {
-            int tw = textRenderer.getWidth(hoverMod.desc) + 10;
+            int tw = Ui.w(textRenderer, hoverMod.desc) + 10;
             int tx = Math.max(4, Math.min(width - tw - 4, mx + 10)), ty = my + 12;
             Gfx.rrect(c, tx, ty, tw, 14, ca(0xF0090A0E), true);
-            c.drawText(textRenderer, hoverMod.desc, tx + 5, ty + 3, ca(TEXT), false);
+            Ui.text(c, textRenderer, hoverMod.desc, tx + 5, ty + 3, ca(TEXT), false);
         }
     }
 
@@ -339,7 +357,7 @@ public class ModMenuScreen extends Screen {
         btn(c, gx, py + HEAD + 4, 130, 14, "+ KONUMUMU EKLE", acc(), mx, my);
         List<Waypoints.WP> l = Waypoints.list(client);
         if (l.isEmpty()) {
-            c.drawText(textRenderer, "Henüz waypoint yok. Oyundayken B tuşu ile de ekleyebilirsin.", gx, gy + 8, ca(DIM), false);
+            Ui.text(c, textRenderer, "Henüz waypoint yok. Oyundayken B tuşu ile de ekleyebilirsin.", gx, gy + 8, ca(DIM), false);
             return;
         }
         c.enableScissor(gx - 2, gy, gx + gw + 2, gy + gh);
@@ -349,13 +367,13 @@ public class ModMenuScreen extends Screen {
             if (y + WROW < gy || y > gy + gh) continue;
             Gfx.rrect(c, gx, y, gw - 6, WROW - 3, ca(CARD), true);
             Gfx.rrect(c, gx + 6, y + 6, 10, 10, ca(w.color), true);
-            c.drawText(textRenderer, textRenderer.trimToWidth(w.name, Math.max(30, gw - 190)), gx + 22, y + 3, ca(TEXT), false);
+            Ui.text(c, textRenderer, Ui.fit(textRenderer, w.name, Math.max(30, gw - 190)), gx + 22, y + 3, ca(TEXT), false);
             String sub = w.x + " " + w.y + " " + w.z;
             if (client.player != null && client.world != null && w.dim.equals(Waypoints.dimOf(client))) {
                 double dx = w.x + 0.5 - client.player.getX(), dy = w.y - client.player.getY(), dz = w.z + 0.5 - client.player.getZ();
                 sub += "  -  " + (int) Math.sqrt(dx * dx + dy * dy + dz * dz) + "m";
             }
-            c.drawText(textRenderer, sub, gx + 22, y + 13, ca(DIM), false);
+            Ui.text(c, textRenderer, sub, gx + 22, y + 13, ca(DIM), false);
             int bx = gx + gw - 152;
             btn(c, bx, y + 4, 56, 14, "DÜZENLE", BTN, mx, my);
             btn(c, bx + 60, y + 4, 50, 14, w.show ? "GİZLE" : "GÖSTER", BTN, mx, my);
@@ -368,7 +386,7 @@ public class ModMenuScreen extends Screen {
     private void renderRows(DrawContext c, int mx, int my) {
         if (opt != null) {
             btn(c, gx, py + HEAD + 4, 58, 14, "< GERİ", BTN, mx, my);
-            c.drawText(textRenderer, opt.name, gx + 66, py + HEAD + 8, ca(TEXT), true);
+            Ui.text(c, textRenderer, opt.name, gx + 66, py + HEAD + 8, ca(TEXT), true);
             btn(c, gx + gw - 62, py + HEAD + 4, 62, 14, "SIFIRLA", BTN, mx, my);
         } else {
             btn(c, gx, py + HEAD + 4, 116, 14, "PROFİLİ KOPYALA", BTN, mx, my);
@@ -382,11 +400,11 @@ public class ModMenuScreen extends Screen {
             Gfx.rrect(c, gx, y, gw - 6, ROW - 2, ca((i & 1) == 0 ? CARD : 0xFF111318), true);
             Setting s = rowSetting(i);
             if (s == null) {
-                c.drawText(textRenderer, "Modül aktif", gx + 8, y + 5, ca(TEXT), false);
+                Ui.text(c, textRenderer, "Modül aktif", gx + 8, y + 5, ca(TEXT), false);
                 drawSwitch(c, ctlR - 28, y + 3, opt.anim);
                 continue;
             }
-            c.drawText(textRenderer, textRenderer.trimToWidth(s.label, Math.max(40, gw - 130)), gx + 8, y + 5, ca(TEXT), false);
+            Ui.text(c, textRenderer, Ui.fit(textRenderer, s.label, Math.max(40, gw - 130)), gx + 8, y + 5, ca(TEXT), false);
             int bx = ctlX(s, ctlR);
             switch (s.type) {
                 case BOOL -> {
@@ -399,7 +417,7 @@ public class ModMenuScreen extends Screen {
                     int fw = (int) (70 * s.fraction());
                     if (fw > 0) Gfx.rrect(c, bx, y + 6, fw, 6, ca(acc()), true);
                     String v = s.text();
-                    c.drawText(textRenderer, v, bx - 6 - textRenderer.getWidth(v), y + 5, ca(DIM), false);
+                    Ui.text(c, textRenderer, v, bx - 6 - Ui.w(textRenderer, v), y + 5, ca(DIM), false);
                 }
                 default -> {
                     boolean hov = Gfx.in(mx, my, bx, y + 2, 96, 14);
@@ -409,7 +427,7 @@ public class ModMenuScreen extends Screen {
                         Gfx.rrect(c, bx + 5, y + 5, 8, 8, ca(Setting.COLORS[s.value]), false);
                         t0 = bx + 17;
                     }
-                    c.drawText(textRenderer, textRenderer.trimToWidth(s.text(), 96 - (t0 - bx) - 4), t0, y + 5, ca(TEXT), false);
+                    Ui.text(c, textRenderer, Ui.fit(textRenderer, s.text(), 96 - (t0 - bx) - 4), t0, y + 5, ca(TEXT), false);
                 }
             }
         }
@@ -429,6 +447,16 @@ public class ModMenuScreen extends Screen {
         int b = click.button();
         layout();
         if (editKind != 0) return editClick(click, doubled);
+        boolean onSearch = grid() && gw >= 290 && Gfx.in(mx, my, gx + gw - 94, py + HEAD + 4, 92, 14);
+        if (search != null) {
+            if (onSearch) {
+                search.mouseClicked(click, doubled);
+                setFocused(search);
+                search.setFocused(true);
+                return true;
+            }
+            search.setFocused(false);
+        }
 
         if (Gfx.in(mx, my, px + pw - 22, py + 8, 14, 14)) { click(); close(); return true; }
 

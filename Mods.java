@@ -48,6 +48,7 @@ final class Mods {
         g(Setting.num("grid", "Izgara boyutu", 1, 20, 1, 4, " px"));
         g(Setting.bool("guides", "Hizalama çizgileri", true));
         g(Setting.bool("splash", "Açılış animasyonu", true));
+        g(Setting.bool("font", "Özel yazı tipi (Poppins)", true));
     }
 
     static float gscale() { return g("gscale").value / 100f; }
@@ -245,6 +246,10 @@ final class Mods {
         d("crosshair", "Özel nişangah: şekil, renk, boyut.");
         d("waypoints", "Ekranda yön ve mesafe gösteren noktalar. B ile ekle.");
         d("snaplook", "Tuşa basılı tutunca arkana bakarsın (Sol Alt).");
+        d("stats", "Oturumdaki kill, ölüm ve K/D oranı.");
+        d("fpsgraph", "FPS grafiği: kare sürelerini renkli çubuklarla gösterir.");
+        d("togglesneak", "Eğilme tuşu aç/kapa olur, basılı tutmak gerekmez.");
+        d("scoreboard", "Sunucu skor tablosunun konumunu, boyutunu ve görünürlüğünü ayarlar.");
     }
 
     private static String dir(String d) {
@@ -290,7 +295,7 @@ final class Mods {
             Gfx.rrect(c, x, y, w, h, fa(Anim.mix(0x66000000, 0xCCFFFFFF, k[i])), true);
             int txt = Anim.mix(color, 0xFF111111, k[i]);
             if (label.isEmpty()) c.fill(x + 16, y + 4, x + w - 16, y + 5, txt);
-            else c.drawText(tr, label, x + (w - tr.getWidth(label)) / 2, y + (h - 8) / 2 + 1, txt, false);
+            else Ui.text(c, tr, label, x + (w - Ui.w(tr, label)) / 2, y + (h - 8) / 2 + 1, txt, false);
         }
     }
 
@@ -328,11 +333,11 @@ final class Mods {
             for (int i = 0; i < 4; i++) {
                 int yy = y + i * 18;
                 if (st[i].isEmpty()) {
-                    c.drawText(tr, "-", x + 20, yy + 4, fa(0xFF666B78), false);
+                    Ui.text(c, tr, "-", x + 20, yy + 4, fa(0xFF666B78), false);
                     continue;
                 }
                 c.drawItem(st[i], x, yy);
-                if (sPct.on()) c.drawText(tr, pct[i] + "%", x + 20, yy + 4, auto ? fa(hi(pct[i], 60, 30, 15)) : color, shadow);
+                if (sPct.on()) Ui.text(c, tr, pct[i] + "%", x + 20, yy + 4, auto ? fa(hi(pct[i], 60, 30, 15)) : color, shadow);
             }
         }
     }

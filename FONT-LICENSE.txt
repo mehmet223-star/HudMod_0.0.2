@@ -1,0 +1,3 @@
+GDF Client bundles the Poppins font (Medium and Bold).
+Copyright 2020 The Poppins Project Authors (https://github.com/itfoundry/Poppins)
+Licensed under the SIL Open Font License, Version 1.1: https://scripts.sil.org/OFL

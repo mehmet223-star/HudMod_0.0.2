@@ -22,7 +22,7 @@ final class Profiles {
     private Profiles() {}
 
     static final String[] BUILTIN = {"Main", "Sword PvP", "Crystal PvP", "Mace PvP"};
-    private static final int VERSION = 3;
+    private static final int VERSION = 4;
     private static final Map<String, JsonObject> DATA = new LinkedHashMap<>();
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Gson COMPACT = new Gson();
@@ -37,11 +37,11 @@ final class Profiles {
     private static Set<String> presetOf(String name) {
         return switch (name) {
             case "Sword PvP" -> set("fps", "cps", "keys", "armor", "combo", "target", "reach", "damage",
-                    "potions", "alerts", "crosshair", "sprint", "boost", "waypoints");
+                    "potions", "alerts", "crosshair", "sprint", "boost", "waypoints", "stats");
             case "Crystal PvP" -> set("fps", "ping", "armor", "items", "totempop", "potions", "alerts",
-                    "crosshair", "sprint", "boost", "waypoints");
+                    "crosshair", "sprint", "boost", "waypoints", "stats");
             case "Mace PvP" -> set("fps", "armor", "mace", "items", "combo", "damage", "potions", "alerts",
-                    "crosshair", "sprint", "boost", "waypoints");
+                    "crosshair", "sprint", "boost", "waypoints", "stats");
             default -> null; // Main: modüllerin varsayılanları
         };
     }

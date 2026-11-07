@@ -72,12 +72,12 @@ public class HudEditScreen extends Screen {
 
         if (hover != null) {
             String tip = hover.name;
-            int tw = textRenderer.getWidth(tip) + 8;
+            int tw = Ui.w(textRenderer, tip) + 8;
             int tx = Math.max(2, Math.min(width - tw - 2, hover.px(width)));
             int ty = hover.py(height) - 14;
             if (ty < 18) ty = hover.py(height) + hover.sh() + 3;
             Gfx.rrect(c, tx, ty, tw, 12, 0xF0101018, true);
-            c.drawText(textRenderer, tip, tx + 4, ty + 2, 0xFF55FFFF, false);
+            Ui.text(c, textRenderer, tip, tx + 4, ty + 2, 0xFF55FFFF, false);
         }
 
         if (pop != null) {
@@ -85,18 +85,18 @@ public class HudEditScreen extends Screen {
             c.fill(popX + 6, popY, popX + PW - 6, popY + 1, Mods.accent());
             small(c, popX + 6, popY + 5, 22, 14, "-", mx, my);
             small(c, popX + PW - 28, popY + 5, 22, 14, "+", mx, my);
-            Gfx.center(c, textRenderer, pop.name + "  " + pop.sScale.value + "%", popX + PW / 2, popY + 9, 0xFFFFFFFF, false);
+            Ui.center(c, textRenderer, pop.name + "  " + pop.sScale.value + "%", popX + PW / 2, popY + 9, 0xFFFFFFFF, false);
             small(c, popX + 6, popY + 23, 58, 12, "AYARLAR", mx, my);
             small(c, popX + 68, popY + 23, 58, 12, "KAPAT", mx, my);
         }
 
-        Gfx.center(c, textRenderer, "Sürükle: taşı  |  Sağ tık: boyut ve ayarlar  |  Tekerlek: boyut  |  ESC: menü",
+        Ui.center(c, textRenderer, "Sürükle: taşı  |  Sağ tık: boyut ve ayarlar  |  Tekerlek: boyut  |  ESC: menü",
                 width / 2, 6, 0xFFFFFFFF, true);
 
         int bw = 70, bx = width / 2 - bw / 2, by = height - 22;
         boolean hov = Gfx.in(mx, my, bx, by, bw, 16);
         Gfx.rrect(c, bx, by, bw, 16, hov ? 0xFF4F8CFF : 0xFF3B82F6, true);
-        Gfx.center(c, textRenderer, "BİTTİ", width / 2, by + 4, 0xFFFFFFFF, false);
+        Ui.center(c, textRenderer, "BİTTİ", width / 2, by + 4, 0xFFFFFFFF, false);
     }
 
     @Override

@@ -37,7 +37,7 @@ final class Splash {
         m.pushMatrix();
         m.translate(w / 2f, h / 2f - 30f);
         m.scale(s, s);
-        Ui.spacedCenter(c, tr, "GDF", 0, 0, col(0xFFFFFF, a), true);
+        Ui.spacedCenterBold(c, tr, "GDF", 0, 0, col(0xFFFFFF, a), true);
         m.popMatrix();
 
         // CLIENT
@@ -46,7 +46,7 @@ final class Splash {
             m.pushMatrix();
             m.translate(w / 2f, h / 2f + 2f);
             m.scale(1.4f, 1.4f);
-            Ui.spacedCenter(c, tr, "CLIENT", 0, 0, col(acc, a2), true);
+            Ui.spacedCenterBold(c, tr, "CLIENT", 0, 0, col(acc, a2), true);
             m.popMatrix();
         }
 
