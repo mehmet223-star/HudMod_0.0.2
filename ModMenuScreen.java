@@ -18,7 +18,8 @@ public class ModMenuScreen extends Screen {
     private static final int PANEL = 0xF20D0F14, SIDE = 0xFF090A0E, CARD = 0xFF14161C, CARD_HOV = 0xFF1B1E26,
             LINE = 0xFF252932, TEXT = 0xFFE9EBF0, DIM = 0xFF858B99, GREEN = 0xFF2BAA5F, RED = 0xFFC4244A, BTN = 0xFF22262F;
     private static final String[] CHIPS = {"ALL", "HUD", "PVP", "UTILITY"};
-    private static final String[] TABS = {"MODS", "WAYPOINTS", "AYARLAR"};
+    private static final String[] TABS_L = {"MODS", "WAYPOINTS", "SUNUCULAR", "AYARLAR"};
+    private static final String[] TABS_S = {"MODS", "WP", "SRV", "AYAR"};
     private static final int HEAD = 32, CH = 80, GAP = 6, ROW = 20, WROW = 26;
 
     private float open = 0.1f, scroll, scrollT;
@@ -35,6 +36,7 @@ public class ModMenuScreen extends Screen {
     private int editKind, editColor;
     private String editTarget = "";
     private Waypoints.WP editWp;
+    private Servers.SV editSrv;
 
     public ModMenuScreen(Mod opt) {
         super(Text.literal("GDF Client"));
@@ -72,6 +74,8 @@ public class ModMenuScreen extends Screen {
 
     private boolean grid() { return opt == null && tab == 0; }
     private boolean wpView() { return opt == null && tab == 1; }
+    private boolean srvView() { return opt == null && tab == 2; }
+    private String[] tabs() { return pw >= 430 ? TABS_L : TABS_S; }
 
     private void layout() {
         pw = Math.min(width - 8, 460);
@@ -109,6 +113,7 @@ public class ModMenuScreen extends Screen {
         int total;
         if (grid()) total = ((list().size() + cols - 1) / cols) * (CH + GAP);
         else if (wpView()) total = Waypoints.list(client).size() * WROW + 4;
+        else if (srvView()) total = Servers.ALL.size() * WROW + 4;
         else total = rowCount() * ROW + 4;
         return Math.max(0, total - gh);
     }
@@ -140,7 +145,7 @@ public class ModMenuScreen extends Screen {
         editKind = kind;
         int x = width / 2 - 100, y = height / 2 - 44;
         field = new TextFieldWidget(textRenderer, x + 10, y + 22, 180, 16, Text.literal(""));
-        field.setMaxLength(24);
+        field.setMaxLength(kind == 4 ? 48 : 24);
         field.setText(initial);
         addDrawableChild(field);
         setFocused(field);
@@ -167,6 +172,8 @@ public class ModMenuScreen extends Screen {
                     toast("Waypoint güncellendi");
                 }
             }
+            case 4 -> { if (!s.isEmpty()) { Servers.add(s); toast("Sunucu eklendi"); } }
+            case 5 -> { if (editSrv != null && !s.isEmpty()) { editSrv.name = s; Servers.save(); toast("Sunucu adı değişti"); } }
             default -> {}
         }
         closeEdit();
@@ -178,7 +185,13 @@ public class ModMenuScreen extends Screen {
         int w = 200, x = width / 2 - 100, y = height / 2 - 44, by = y + (editKind == 3 ? 66 : 46);
         Gfx.rrect(c, x, y, w, by + 26 - y, 0xFF111318, true);
         c.fill(x + 8, y, x + w - 8, y + 1, acc());
-        String title = editKind == 1 ? "YENİ PROFİL ADI" : editKind == 2 ? "PROFİL ADINI DEĞİŞTİR" : "WAYPOINT DÜZENLE";
+        String title = switch (editKind) {
+            case 1 -> "YENİ PROFİL ADI";
+            case 2 -> "PROFİL ADINI DEĞİŞTİR";
+            case 4 -> "SUNUCU ADRESİ";
+            case 5 -> "SUNUCU ADI";
+            default -> "WAYPOINT DÜZENLE";
+        };
         Ui.spaced(c, textRenderer, title, x + 10, y + 8, TEXT, false);
         field.render(c, mx, my, 0f);
         if (editKind == 3) {
@@ -239,12 +252,12 @@ public class ModMenuScreen extends Screen {
 
         // sekmeler
         int tx = gx;
-        for (int i = 0; i < TABS.length; i++) {
-            int w = Ui.sw(textRenderer, TABS[i]) + 18;
+        for (int i = 0; i < tabs().length; i++) {
+            int w = Ui.sw(textRenderer, tabs()[i]) + 18;
             boolean sel = opt == null ? tab == i : i == 0;
             boolean hov = Gfx.in(mx, my, tx, py + 9, w, 14);
             Gfx.rrect(c, tx, py + 9, w, 14, ca(sel ? Anim.mix(BTN, acc(), 0.35f) : hov ? BTN : 0xFF171A21), true);
-            Ui.spacedCenter(c, textRenderer, TABS[i], tx + w / 2, py + 13, ca(sel ? TEXT : DIM), false);
+            Ui.spacedCenter(c, textRenderer, tabs()[i], tx + w / 2, py + 13, ca(sel ? TEXT : DIM), false);
             tx += w + 5;
         }
 
@@ -257,6 +270,7 @@ public class ModMenuScreen extends Screen {
         renderSidebar(c, mx, my);
         if (grid()) renderGrid(c, mx, my);
         else if (wpView()) renderWaypoints(c, mx, my);
+        else if (srvView()) renderServers(c, mx, my);
         else renderRows(c, mx, my);
 
         if (System.currentTimeMillis() < flashUntil) {
@@ -351,6 +365,31 @@ public class ModMenuScreen extends Screen {
         int bh = Math.max(14, (int) (gh * (gh / (gh + max))));
         int by = gy + (int) ((gh - bh) * (scroll / max));
         Gfx.rrect(c, gx + gw - 3, by, 3, bh, ca(0xFF4A5164), true);
+    }
+
+    private void renderServers(DrawContext c, int mx, int my) {
+        btn(c, gx, py + HEAD + 4, 108, 14, "+ ADRES EKLE", acc(), mx, my);
+        btn(c, gx + 112, py + HEAD + 4, 100, 14, "PANODAN EKLE", BTN, mx, my);
+        List<Servers.SV> l = Servers.ALL;
+        if (l.isEmpty()) {
+            Ui.text(c, textRenderer, "Sunucu yok. Adres ekle, ana menüden tek tıkla katıl.", gx, gy + 8, ca(DIM), false);
+            return;
+        }
+        c.enableScissor(gx - 2, gy, gx + gw + 2, gy + gh);
+        for (int i = 0; i < l.size(); i++) {
+            Servers.SV sv = l.get(i);
+            int y = gy + 2 + i * WROW - Math.round(scroll);
+            if (y + WROW < gy || y > gy + gh) continue;
+            Gfx.rrect(c, gx, y, gw - 6, WROW - 3, ca(CARD), true);
+            Ui.text(c, textRenderer, Ui.fit(textRenderer, sv.name, Math.max(30, gw - 170)), gx + 8, y + 3, ca(TEXT), false);
+            Ui.text(c, textRenderer, Ui.fit(textRenderer, sv.address, Math.max(30, gw - 170)), gx + 8, y + 13, ca(DIM), false);
+            int bx = gx + gw - 152;
+            btn(c, bx, y + 4, 48, 14, "KATIL", GREEN, mx, my);
+            btn(c, bx + 52, y + 4, 56, 14, "DÜZENLE", BTN, mx, my);
+            btn(c, bx + 112, y + 4, 28, 14, "SİL", RED, mx, my);
+        }
+        c.disableScissor();
+        scrollbar(c);
     }
 
     private void renderWaypoints(DrawContext c, int mx, int my) {
@@ -461,8 +500,8 @@ public class ModMenuScreen extends Screen {
         if (Gfx.in(mx, my, px + pw - 22, py + 8, 14, 14)) { click(); close(); return true; }
 
         int tx = gx;
-        for (int i = 0; i < TABS.length; i++) {
-            int w = Ui.sw(textRenderer, TABS[i]) + 18;
+        for (int i = 0; i < tabs().length; i++) {
+            int w = Ui.sw(textRenderer, tabs()[i]) + 18;
             if (Gfx.in(mx, my, tx, py + 9, w, 14)) {
                 click();
                 opt = null;
@@ -524,6 +563,33 @@ public class ModMenuScreen extends Screen {
                     if (Gfx.in(mx, my, bx, y + 4, 56, 14)) { click(); editWp = l.get(i); editColor = editWp.color; openEdit(3, editWp.name); return true; }
                     if (Gfx.in(mx, my, bx + 60, y + 4, 50, 14)) { click(); l.get(i).show = !l.get(i).show; Waypoints.save(); return true; }
                     if (Gfx.in(mx, my, bx + 114, y + 4, 28, 14)) { click(); Waypoints.remove(l.get(i)); toast("Waypoint silindi"); return true; }
+                }
+                dragScroll = true;
+            }
+            return true;
+        }
+
+        if (srvView()) {
+            if (Gfx.in(mx, my, gx, py + HEAD + 4, 108, 14)) { click(); editSrv = null; openEdit(4, ""); return true; }
+            if (Gfx.in(mx, my, gx + 112, py + HEAD + 4, 100, 14)) {
+                click();
+                String cb = client.keyboard.getClipboard().trim();
+                if (!cb.isEmpty() && cb.length() <= 64 && !cb.contains(" ")) { Servers.add(cb); toast("Sunucu eklendi"); }
+                else toast("Panoda geçerli adres yok");
+                return true;
+            }
+            if (my >= gy && my <= gy + gh) {
+                List<Servers.SV> l = Servers.ALL;
+                for (int i = 0; i < l.size(); i++) {
+                    int y = gy + 2 + i * WROW - Math.round(scroll);
+                    int bx = gx + gw - 152;
+                    if (Gfx.in(mx, my, bx, y + 4, 48, 14)) {
+                        click();
+                        if (!Servers.connect(client, this, l.get(i))) toast("Önce dünyadan çık, ana menüden katıl");
+                        return true;
+                    }
+                    if (Gfx.in(mx, my, bx + 52, y + 4, 56, 14)) { click(); editSrv = l.get(i); openEdit(5, editSrv.name); return true; }
+                    if (Gfx.in(mx, my, bx + 112, y + 4, 28, 14)) { click(); Servers.remove(l.get(i)); toast("Sunucu silindi"); return true; }
                 }
                 dragScroll = true;
             }

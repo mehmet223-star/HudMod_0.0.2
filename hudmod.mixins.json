@@ -5,7 +5,8 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "GameRendererMixin",
-    "LivingEntityMixin"
+    "LivingEntityMixin",
+    "EntityMixin"
   ],
   "injectors": {
     "defaultRequire": 0

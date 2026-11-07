@@ -17,4 +17,9 @@ public final class ModHooks {
         if (entity != MinecraftClient.getInstance().player) return original;
         return Math.max(1, Math.round(original * Mods.swing.mult()));
     }
+
+    /** Düşük Ateş modülü açıkken sadece kendi oyuncunun ateş efekti gizlenir. */
+    public static boolean hideFire(Object e) {
+        return Extra2.fire != null && Extra2.fire.active && e == MinecraftClient.getInstance().player;
+    }
 }

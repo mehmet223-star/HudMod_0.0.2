@@ -204,6 +204,7 @@ final class Mods {
         add(swing.at(0, 0, 0, 0), false);
 
         ExtraMods.init();
+        Extra2.init();
         describe();
     }
 
@@ -249,6 +250,10 @@ final class Mods {
         d("stats", "Oturumdaki kill, ölüm ve K/D oranı.");
         d("fpsgraph", "FPS grafiği: kare sürelerini renkli çubuklarla gösterir.");
         d("togglesneak", "Eğilme tuşu aç/kapa olur, basılı tutmak gerekmez.");
+        d("lowfire", "Yanarken ekranı kaplayan ateş görüntüsünü gizler.");
+        d("hitbox", "Yakındaki oyuncuların hitbox'ını tel kafes olarak çizer.");
+        d("minimap", "Üstten bakan hafif harita; oyuncular ve waypointler görünür.");
+        d("skinlayers", "Skin katmanlarını (ceket, kol, bacak, şapka, pelerin) ayarlar.");
         d("scoreboard", "Sunucu skor tablosunun konumunu, boyutunu ve görünürlüğünü ayarlar.");
     }
 
