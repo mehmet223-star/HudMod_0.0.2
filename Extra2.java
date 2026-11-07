@@ -263,7 +263,6 @@ final class Extra2 {
         private final PlayerModelPart[] parts = {PlayerModelPart.CAPE, PlayerModelPart.JACKET, PlayerModelPart.LEFT_SLEEVE,
                 PlayerModelPart.RIGHT_SLEEVE, PlayerModelPart.LEFT_PANTS_LEG, PlayerModelPart.RIGHT_PANTS_LEG, PlayerModelPart.HAT};
         private final Setting[] s = new Setting[7];
-        private final boolean[] orig = new boolean[7];
 
         SkinMod(boolean en) {
             super("skinlayers", "Skin Katmanları", Cat.UTIL, Items.LEATHER_CHESTPLATE, false, en);
@@ -279,8 +278,6 @@ final class Extra2 {
 
         @Override
         public void onEnable(MinecraftClient mc) {
-            var cur = mc.options.getEnabledPlayerModelParts();
-            for (int i = 0; i < 7; i++) orig[i] = cur.contains(parts[i]);
             apply(mc);
         }
 
@@ -291,7 +288,8 @@ final class Extra2 {
 
         @Override
         public void onDisable(MinecraftClient mc) {
-            for (int i = 0; i < 7; i++) mc.options.setPlayerModelPart(parts[i], orig[i]);
+            // Kapatınca oyunun varsayılanı: tüm katmanlar açık
+            for (int i = 0; i < 7; i++) mc.options.setPlayerModelPart(parts[i], true);
         }
     }
 }
