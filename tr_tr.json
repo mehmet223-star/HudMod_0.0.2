@@ -3,5 +3,8 @@
   "key.hudmod.zoom": "Zoom",
   "key.hudmod.snaplook": "Snaplook (arkaya bak)",
   "key.hudmod.waypoint": "Waypoint Ekle",
+  "key.hudmod.stopwatch": "Kronometre Baslat/Durdur",
+  "key.hudmod.stopreset": "Kronometre Sifirla",
+  "key.hudmod.note": "Hizli Not",
   "key.category.hudmod.main": "GDF Client"
 }

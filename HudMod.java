@@ -26,7 +26,7 @@ public class HudMod implements ClientModInitializer {
     public static long tick = 1;
     public static long tickNs = System.nanoTime();
     private static KeyBinding openMenu;
-    public static KeyBinding zoomKey, snapKey, wpKey;
+    public static KeyBinding zoomKey, snapKey, wpKey, stopKey, stopResetKey, noteKey;
 
     @Override
     public void onInitializeClient() {
@@ -34,6 +34,7 @@ public class HudMod implements ClientModInitializer {
         Profiles.load();
         Waypoints.load();
         Servers.load();
+        Notes.load();
 
         KeyBinding.Category cat = KeyBinding.Category.create(Identifier.of("hudmod", "main"));
         openMenu = KeyBindingHelper.registerKeyBinding(new KeyBinding(
@@ -44,6 +45,13 @@ public class HudMod implements ClientModInitializer {
                 "key.hudmod.snaplook", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_ALT, cat));
         wpKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.hudmod.waypoint", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_B, cat));
+
+        stopKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.hudmod.stopwatch", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_K, cat));
+        stopResetKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.hudmod.stopreset", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_L, cat));
+        noteKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.hudmod.note", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_N, cat));
 
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hit) -> {
             if (world.isClient()) Mods.onAttack(entity);
@@ -112,6 +120,9 @@ public class HudMod implements ClientModInitializer {
         CpsTracker.poll(mc);
         if (tick % 10 == 0) FrameStats.compute();
         while (openMenu.wasPressed()) mc.setScreen(new ModMenuScreen(null));
+        while (noteKey.wasPressed()) {
+            if (mc.currentScreen == null && Extra3.notes != null) mc.setScreen(new ModMenuScreen(Extra3.notes, true));
+        }
         while (wpKey.wasPressed()) {
             if (mc.player != null && mc.world != null && mc.currentScreen == null) Waypoints.addHere(mc, null, false);
         }

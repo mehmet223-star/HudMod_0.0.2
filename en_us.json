@@ -3,5 +3,8 @@
   "key.hudmod.zoom": "Zoom",
   "key.hudmod.snaplook": "Snaplook (look behind)",
   "key.hudmod.waypoint": "Add Waypoint",
+  "key.hudmod.stopwatch": "Stopwatch Start/Stop",
+  "key.hudmod.stopreset": "Stopwatch Reset",
+  "key.hudmod.note": "Quick Note",
   "key.category.hudmod.main": "GDF Client"
 }

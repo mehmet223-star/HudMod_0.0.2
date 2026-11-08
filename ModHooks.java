@@ -22,4 +22,15 @@ public final class ModHooks {
     public static boolean hideFire(Object e) {
         return Extra2.fire != null && Extra2.fire.active && e == MinecraftClient.getInstance().player;
     }
+
+    /** Zaman Değiştirici açıkken gökyüzü açısını bizim saatimize çevirir. */
+    public static float skyAngle(Object world, float orig) {
+        var t = Extra3.time;
+        if (t == null || !t.active) return orig;
+        var mc = MinecraftClient.getInstance();
+        if (mc.world == null || world != mc.world) return orig;
+        var dim = mc.world.getDimension();
+        if (dim.hasCeiling() || !dim.hasSkyLight()) return orig;
+        return t.angle();
+    }
 }

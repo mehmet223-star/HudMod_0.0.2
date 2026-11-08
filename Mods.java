@@ -42,6 +42,7 @@ final class Mods {
 
     static {
         g(Setting.color("accent", "Vurgu rengi", 6));
+        g(Setting.choice("theme", "Menü teması", 1, "Özel (vurgu rengi)", "Gece", "Mor", "Kırmızı", "Yeşil", "Turuncu", "Okyanus", "Pembe", "Gümüş"));
         g(Setting.num("gscale", "Genel HUD boyutu", 50, 200, 10, 100, "%"));
         g(Setting.bool("perf", "Performans modu (HUD daha seyrek güncellenir)", false));
         g(Setting.bool("snap", "Editörde ızgaraya yapış", true));
@@ -52,7 +53,7 @@ final class Mods {
     }
 
     static float gscale() { return g("gscale").value / 100f; }
-    static int accent() { return colorOf(g("accent").value, 0xFF5599FF); }
+    static int accent() { return Theme.idx() > 0 ? Theme.accent() : colorOf(g("accent").value, 0xFF5599FF); }
 
     static int colorOf(int i, int auto) {
         if (i < Setting.COLORS.length) return Setting.COLORS[i];
@@ -93,6 +94,7 @@ final class Mods {
     static void tick(MinecraftClient mc) {
         if (mc.player != null && mc.player.hurtTime > 0) combo = 0;
         ExtraMods.tick(mc);
+        Extra3.tick(mc);
     }
 
     // ---------- kayıt ----------
@@ -205,6 +207,7 @@ final class Mods {
 
         ExtraMods.init();
         Extra2.init();
+        Extra3.init();
         describe();
     }
 
@@ -254,6 +257,16 @@ final class Mods {
         d("hitbox", "Yakındaki oyuncuların hitbox'ını tel kafes olarak çizer.");
         d("minimap", "Üstten bakan hafif harita; oyuncular ve waypointler görünür.");
         d("skinlayers", "Skin katmanlarını (ceket, kol, bacak, şapka, pelerin) ayarlar.");
+        d("timechanger", "Sadece sende gündüz/gece saatini sabitler veya hızlı döndürür.");
+        d("weather", "Sadece sende havayı açık, yağmurlu veya fırtınalı yapar.");
+        d("cooldown", "Pearl, rüzgar yükü, chorus ve kalkan bekleme süreleri.");
+        d("stopwatch", "Kronometre veya geri sayım. Başlat/durdur: K, sıfırla: L.");
+        d("notes", "Ekranda tutulan kısa notlar. N tuşuyla hızlı düzenle.");
+        d("nearby", "Yakındaki oyuncuların adı, mesafesi ve canı.");
+        d("targetarmor", "Baktığın oyuncunun zırhı ve dayanıklılığı.");
+        d("compass", "Üstte yön çubuğu; waypointler de görünür.");
+        d("hunger", "Açlık ve gizli doygunluk değeri.");
+        d("itemcount", "Elindeki eşyadan envanterde kaç tane olduğunu gösterir.");
         d("scoreboard", "Sunucu skor tablosunun konumunu, boyutunu ve görünürlüğünü ayarlar.");
     }
 
@@ -270,12 +283,16 @@ final class Mods {
     // ================= Keystrokes =================
     static final class KeysMod extends Mod {
         private final float[] k = new float[7];
-        private final Setting sCps;
+        private final Setting sCps, sStyle, cPress;
 
         KeysMod(boolean en) {
             super("keys", "Keystrokes", Cat.HUD, Items.STONE_BUTTON, true, en);
             sCps = Setting.bool("cps", "Fare tuşlarında CPS göster", true);
+            sStyle = Setting.choice("style", "Stil", 0, "Klasik", "Köşeli", "Çerçeve", "Neon");
+            cPress = Setting.color("press", "Basma rengi", 0);
             add(sCps);
+            add(sStyle);
+            add(cPress);
             cw = 52;
             ch = 64;
         }
@@ -297,8 +314,32 @@ final class Mods {
         }
 
         private void key(DrawContext c, TextRenderer tr, int x, int y, int w, int h, String label, int i, int color) {
-            Gfx.rrect(c, x, y, w, h, fa(Anim.mix(0x66000000, 0xCCFFFFFF, k[i])), true);
-            int txt = Anim.mix(color, 0xFF111111, k[i]);
+            float a = k[i];
+            int pc = 0xFF000000 | colorOf(cPress.value, 0xFFFFFFFF);
+            int txt;
+            switch (sStyle.value) {
+                case 1 -> {
+                    c.fill(x, y, x + w, y + h, fa(Anim.mix(0x88000000, pc, a)));
+                    txt = Anim.mix(color, 0xFF111111, a);
+                }
+                case 2 -> {
+                    int al = Math.round(0xAA * a);
+                    if (al > 3) c.fill(x, y, x + w, y + h, fa((al << 24) | (pc & 0xFFFFFF)));
+                    Gfx.border(c, x, y, w, h, fa(Anim.mix(0xCCFFFFFF, pc, a)));
+                    txt = Anim.mix(color, pc, a);
+                }
+                case 3 -> {
+                    int gl = Math.round(110 * a);
+                    if (gl > 3) Gfx.rrect(c, x - 1, y - 1, w + 2, h + 2, fa((gl << 24) | (pc & 0xFFFFFF)), true);
+                    Gfx.rrect(c, x, y, w, h, fa(0xDD0A0C10), true);
+                    Gfx.border(c, x, y, w, h, fa(Anim.mix(0x66FFFFFF, pc, a)));
+                    txt = Anim.mix(color, pc, a);
+                }
+                default -> {
+                    Gfx.rrect(c, x, y, w, h, fa(Anim.mix(0x66000000, (0xCC << 24) | (pc & 0xFFFFFF), a)), true);
+                    txt = Anim.mix(color, 0xFF111111, a);
+                }
+            }
             if (label.isEmpty()) c.fill(x + 16, y + 4, x + w - 16, y + 5, txt);
             else Ui.text(c, tr, label, x + (w - Ui.w(tr, label)) / 2, y + (h - 8) / 2 + 1, txt, false);
         }
