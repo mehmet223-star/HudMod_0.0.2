@@ -174,7 +174,7 @@ final class Extra3 {
 
         private long elapsed() { return accum + (running ? System.currentTimeMillis() - startMs : 0); }
 
-        private void toggle() {
+        private void startStop() {
             if (running) { accum = elapsed(); running = false; }
             else { startMs = System.currentTimeMillis(); running = true; done = false; }
         }
@@ -183,7 +183,7 @@ final class Extra3 {
 
         @Override
         public void onTick(MinecraftClient mc) {
-            while (HudMod.stopKey != null && HudMod.stopKey.wasPressed()) toggle();
+            while (HudMod.stopKey != null && HudMod.stopKey.wasPressed()) startStop();
             while (HudMod.stopResetKey != null && HudMod.stopResetKey.wasPressed()) reset();
         }
 
