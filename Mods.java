@@ -208,6 +208,7 @@ final class Mods {
         ExtraMods.init();
         Extra2.init();
         Extra3.init();
+        Extra4.init();
         describe();
     }
 

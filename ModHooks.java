@@ -33,4 +33,9 @@ public final class ModHooks {
         if (dim.hasCeiling() || !dim.hasSkyLight()) return orig;
         return t.angle();
     }
+
+    /** Skin Değiştirici: sadece yerel oyuncunun skin dokusunu değiştirir. */
+    public static Object skin(Object self, Object orig) {
+        return Extra4.override(self, orig);
+    }
 }

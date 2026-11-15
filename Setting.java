@@ -11,8 +11,9 @@ public class Setting {
 
     public final String key, label, suffix;
     public final Type type;
-    public final int min, max, step;
-    public final String[] options;
+    public final int min, step;
+    public int max;
+    public String[] options;
     public int def, value;
 
     private Setting(String key, String label, Type type, int min, int max, int step, int def, String suffix, String[] options) {
@@ -42,6 +43,13 @@ public class Setting {
 
     public static Setting color(String key, String label, int def) {
         return choice(key, label, def, COLOR_NAMES);
+    }
+
+    /** Seçenek listesini çalışma anında değiştirir (örn. skin dosyaları). */
+    public void setOptions(String[] o) {
+        options = o;
+        max = o.length - 1;
+        if (value > max) value = 0;
     }
 
     public boolean isColor() { return options == COLOR_NAMES; }

@@ -102,6 +102,8 @@ public class HudMod implements ClientModInitializer {
             if (screen instanceof TitleScreen) {
                 Screens.getButtons(screen).add(ButtonWidget.builder(Text.literal("GDF Client"),
                         b -> client.setScreen(new ModMenuScreen(null))).dimensions(4, 4, 84, 20).build());
+                Screens.getButtons(screen).add(ButtonWidget.builder(Text.literal("Skin & Pelerin"),
+                        b -> client.setScreen(new SkinScreen(screen))).dimensions(4, 28, 84, 20).build());
             }
             if (screen instanceof TitleScreen && Splash.shouldShow()) {
                 ScreenEvents.afterRender(screen).register((s, c, mx, my, d) ->
