@@ -16,11 +16,12 @@ jobs:
         run: |
           D=src/main/java/com/example/hudmod
           rm -f ArmorElement.java Combat.java Elements.java GraphElement.java HudConfig.java HudConfig_1.java HudEditorScreen.java HudEditorScreen_1.java HudElement.java HudElement_1.java KeystrokesElement.java SettingsScreen.java TextElement.java CpsTracker_1.java
-          mkdir -p $D/mixin src/main/resources/assets/hudmod/lang
+          mkdir -p $D/mixin src/main/resources/assets/hudmod/lang src/main/resources/assets/hudmod/font
           mv *Mixin.java $D/mixin/
           mv *.java $D/
           mv fabric.mod.json hudmod.mixins.json src/main/resources/
           mv en_us.json tr_tr.json src/main/resources/assets/hudmod/lang/
+          mv gdf.ttf gdfbold.ttf gdf.json gdfbold.json src/main/resources/assets/hudmod/font/
       - run: gradle build
       - uses: actions/upload-artifact@v4
         with:
