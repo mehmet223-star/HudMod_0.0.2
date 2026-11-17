@@ -15,6 +15,8 @@ public class Setting {
     public int max;
     public String[] options;
     public int def, value;
+    /** Ayarlar sekmesinde hangi kategoride görüneceği. */
+    public String group = "";
 
     private Setting(String key, String label, Type type, int min, int max, int step, int def, String suffix, String[] options) {
         this.key = key;
@@ -54,6 +56,11 @@ public class Setting {
 
     public boolean isColor() { return options == COLOR_NAMES; }
     public boolean on() { return value != 0; }
+
+    public Setting grp(String g) {
+        group = g;
+        return this;
+    }
 
     public Setting withDefault(int v) {
         def = v;

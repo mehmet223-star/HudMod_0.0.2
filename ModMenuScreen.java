@@ -19,6 +19,8 @@ public class ModMenuScreen extends Screen {
     private static final String[] CHIPS = {"ALL", "HUD", "PVP", "UTILITY"};
     private static final String[] TABS_L = {"MODS", "WAYPOINTS", "SUNUCULAR", "AYARLAR"};
     private static final String[] TABS_S = {"MODS", "WP", "SRV", "AYAR"};
+    private static final String[] SET_CHIPS = {"HEPSİ", "GÖRÜNÜM", "HUD", "EDİTÖR", "PROFİL"};
+    private static final int SH_H = 14, SI_H = 16;
     private static final int HEAD = 32, CH = 80, GAP = 6, ROW = 20, WROW = 26;
 
     private float open = 0.1f, scroll, scrollT;
@@ -26,7 +28,9 @@ public class ModMenuScreen extends Screen {
     private Mod opt, hoverMod;
     private Setting dragSet;
     private int dragX;
-    private boolean dragScroll;
+    private boolean dragScroll, dragBar;
+    private float barGrab;
+    private int setChip, sideScroll, lmx, lmy;
     private final Map<Setting, Float> sw = new HashMap<>();
     private int pw, ph, px, py, side, gx, gy, gw, gh, cols, cardW;
     private String flash = "";
@@ -73,7 +77,12 @@ public class ModMenuScreen extends Screen {
         return (a << 24) | (argb & 0xFFFFFF);
     }
 
+    private boolean anim() { return Mods.g("menuAnim").on(); }
+
+    private int dimColor() { return Math.round(Mods.g("menuDim").value * 2.55f) << 24; }
+
     private void click() {
+        if (!Mods.g("clickSound").on()) return;
         client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1.0f));
     }
 
@@ -112,12 +121,28 @@ public class ModMenuScreen extends Screen {
         return r;
     }
 
-    private int rowCount() { return opt != null ? opt.settings.size() + 1 : Mods.GLOBAL.size(); }
-
-    private Setting rowSetting(int i) {
-        if (opt != null) return i == 0 ? null : opt.settings.get(i - 1);
-        return Mods.GLOBAL.get(i);
+    /** Ayarlar listesi satırları. null = modül aç/kapa, "#..." = başlık, "@..." = eylem satırı. */
+    private List<Object> rows() {
+        List<Object> r = new ArrayList<>();
+        if (opt != null) {
+            r.add(null);
+            r.addAll(opt.settings);
+            return r;
+        }
+        String[] groups = {"GÖRÜNÜM", "HUD", "EDİTÖR", "PROFİL"};
+        for (int g = 0; g < groups.length; g++) {
+            if (setChip != 0 && setChip != g + 1) continue;
+            if (setChip == 0) r.add("#" + groups[g]);
+            for (Setting st : Mods.GLOBAL) if (groups[g].equals(st.group)) r.add(st);
+            if (g == 3) {
+                r.add("@copy");
+                r.add("@paste");
+            }
+        }
+        return r;
     }
+
+    private int rowCount() { return rows().size(); }
 
     private float maxScroll() {
         int total;
@@ -240,11 +265,14 @@ public class ModMenuScreen extends Screen {
     @Override
     public void render(DrawContext c, int mx, int my, float delta) {
         Anim.frame();
-        open = Anim.to(open, 1f, 14f);
+        boolean an = anim();
+        lmx = mx;
+        lmy = my;
+        open = an ? Anim.to(open, 1f, 14f) : 1f;
         layout();
-        scroll = Anim.to(scroll, scrollT, 18f);
+        scroll = an ? Anim.to(scroll, scrollT, 18f) : scrollT;
 
-        c.fill(0, 0, width, height, ca(0xB0000000));
+        c.fill(0, 0, width, height, ca(dimColor()));
         var m = c.getMatrices();
         m.pushMatrix();
         m.translate(0f, (1f - open) * 12f);
@@ -294,26 +322,96 @@ public class ModMenuScreen extends Screen {
         m.popMatrix();
     }
 
+    /** Yan panel satırları: {tür, ad}. tür: 0 başlık, 1 hazır profil, 2 kendi profilim, 3 boş ipucu. */
+    private List<Object[]> sideEntries() {
+        List<Object[]> r = new ArrayList<>();
+        r.add(new Object[]{0, "HAZIR PROFİLLER"});
+        for (String n : Profiles.BUILTIN) r.add(new Object[]{1, n});
+        r.add(new Object[]{0, "PROFİLLERİM"});
+        boolean any = false;
+        for (String n : Profiles.names()) {
+            if (!Profiles.isBuiltin(n)) {
+                r.add(new Object[]{2, n});
+                any = true;
+            }
+        }
+        if (!any) r.add(new Object[]{3, "Henüz yok"});
+        return r;
+    }
+
+    private int sideMax(int listH) {
+        int t = 4;
+        for (Object[] e : sideEntries()) t += (int) e[0] == 0 ? SH_H : SI_H;
+        return Math.max(0, t - listH);
+    }
+
     private void renderSidebar(DrawContext c, int mx, int my) {
         int sx = px + 6, sy = py + HEAD, shh = ph - HEAD - 6;
         Gfx.rrect(c, sx, sy, side, shh, ca(Theme.side()), true);
-        Ui.spaced(c, textRenderer, "PROFİLLER", sx + 6, sy + 6, ca(DIM), false);
-        int ry = sy + 20;
-        for (String n : Profiles.names()) {
-            if (ry > sy + shh - 52) break;
-            boolean sel = n.equals(Profiles.current), hov = Gfx.in(mx, my, sx + 3, ry, side - 6, 14);
-            if (sel) Gfx.rrect(c, sx + 3, ry, side - 6, 14, ca(Anim.mix(Theme.btn(), acc(), 0.5f)), true);
-            else if (hov) Gfx.rrect(c, sx + 3, ry, side - 6, 14, ca(Theme.btn()), true);
-            boolean custom = !Profiles.isBuiltin(n);
-            Ui.text(c, textRenderer, Ui.fit(textRenderer, n, side - (custom ? 40 : 14)), sx + 7, ry + 3, ca(sel ? TEXT : DIM), false);
-            if (custom) {
-                Ui.text(c, textRenderer, "R", sx + side - 25, ry + 3, ca(0xFF9AA3B5), false);
-                Ui.text(c, textRenderer, "x", sx + side - 12, ry + 3, ca(0xFFFF6B6B), false);
+        int top = sy + 4, bot = sy + shh - 46;
+        int smax = sideMax(bot - top);
+        sideScroll = Math.max(0, Math.min(smax, sideScroll));
+        c.enableScissor(sx, top, sx + side, bot);
+        int y = top - sideScroll;
+        for (Object[] e : sideEntries()) {
+            int kind = (int) e[0];
+            String n = (String) e[1];
+            if (kind == 0) {
+                if (y + SH_H > top && y < bot) Ui.spaced(c, textRenderer, n, sx + 6, y + 4, ca(DIM), false);
+                y += SH_H;
+                continue;
             }
-            ry += 16;
+            if (y + SI_H > top && y < bot) {
+                if (kind == 3) {
+                    Ui.text(c, textRenderer, n, sx + 7, y + 3, ca(0xFF5A6070), false);
+                } else {
+                    boolean sel = n.equals(Profiles.current);
+                    boolean hov = Gfx.in(mx, my, sx + 3, y, side - 6, 14) && my >= top && my <= bot;
+                    if (sel) {
+                        Gfx.rrect(c, sx + 3, y, side - 6, 14, ca(Anim.mix(Theme.btn(), acc(), 0.5f)), true);
+                        c.fill(sx + 3, y + 2, sx + 5, y + 12, ca(acc()));
+                    } else if (hov) {
+                        Gfx.rrect(c, sx + 3, y, side - 6, 14, ca(Theme.btn()), true);
+                    }
+                    boolean custom = kind == 2;
+                    Ui.text(c, textRenderer, Ui.fit(textRenderer, n, side - (custom ? 44 : 18)), sx + 8, y + 3, ca(sel ? TEXT : DIM), false);
+                    if (custom) {
+                        Ui.text(c, textRenderer, "R", sx + side - 25, y + 3, ca(0xFF9AA3B5), false);
+                        Ui.text(c, textRenderer, "x", sx + side - 12, y + 3, ca(0xFFFF6B6B), false);
+                    }
+                }
+            }
+            y += SI_H;
         }
+        c.disableScissor();
+        if (smax > 0) {
+            int th = Math.max(12, (int) ((bot - top) * ((bot - top) / (float) (bot - top + smax))));
+            int ty = top + (int) ((bot - top - th) * (sideScroll / (float) smax));
+            Gfx.rrect(c, sx + side - 4, ty, 2, th, ca(0xFF4A5164), false);
+        }
+        c.fill(sx + 6, bot + 2, sx + side - 6, bot + 3, ca(Theme.line()));
         btn(c, sx + 3, sy + shh - 40, side - 6, 16, "YENİ PROFİL", Theme.btn(), mx, my);
         btn(c, sx + 3, sy + shh - 20, side - 6, 16, "HUD DÜZENİ", acc(), mx, my);
+    }
+
+    private void drawChips(DrawContext c, String[] arr, int sel) {
+        int cx = gx;
+        for (int i = 0; i < arr.length; i++) {
+            int w = Ui.sw(textRenderer, arr[i]) + 14;
+            Gfx.rrect(c, cx, py + HEAD + 4, w, 14, ca(i == sel ? acc() : Theme.btn()), true);
+            Ui.spaced(c, textRenderer, arr[i], cx + 7, py + HEAD + 8, ca(i == sel ? 0xFFFFFFFF : DIM), false);
+            cx += w + 4;
+        }
+    }
+
+    private int chipAt(double mx, double my, String[] arr) {
+        int cx = gx;
+        for (int i = 0; i < arr.length; i++) {
+            int w = Ui.sw(textRenderer, arr[i]) + 14;
+            if (Gfx.in(mx, my, cx, py + HEAD + 4, w, 14)) return i;
+            cx += w + 4;
+        }
+        return -1;
     }
 
     private void renderGrid(DrawContext c, int mx, int my) {
@@ -342,7 +440,7 @@ public class ModMenuScreen extends Screen {
             if (y + CH < gy || y > gy + gh) continue;
             boolean hov = Gfx.in(mx, my, x, y, cardW, CH) && my >= gy && my <= gy + gh;
             if (hov) hoverMod = md;
-            md.hover = Anim.to(md.hover, hov ? 1f : 0f, 14f);
+            md.hover = anim() ? Anim.to(md.hover, hov ? 1f : 0f, 14f) : (hov ? 1f : 0f);
             Gfx.rrect(c, x, y, cardW, CH, ca(Anim.mix(Theme.card(), Theme.cardHov(), md.hover)), true);
             int la = Math.round(255 * md.hover);
             if (la > 8) c.fill(x + 4, y, x + cardW - 4, y + 1, ca((la << 24) | (acc() & 0xFFFFFF)));
@@ -371,12 +469,30 @@ public class ModMenuScreen extends Screen {
         }
     }
 
-    private void scrollbar(DrawContext c) {
+    /** {x, y, w, h, thumbY, thumbH}; kaydırılacak bir şey yoksa null. */
+    private int[] bar() {
         float max = maxScroll();
-        if (max <= 0) return;
-        int bh = Math.max(14, (int) (gh * (gh / (gh + max))));
-        int by = gy + (int) ((gh - bh) * (scroll / max));
-        Gfx.rrect(c, gx + gw - 3, by, 3, bh, ca(0xFF4A5164), true);
+        if (max <= 0) return null;
+        int th = Math.min(gh, Math.max(26, (int) (gh * (gh / (gh + max)))));
+        int ty = gy + (int) ((gh - th) * (Math.min(scroll, max) / max));
+        return new int[]{gx + gw - 6, gy, 6, gh, ty, th};
+    }
+
+    private void scrollbar(DrawContext c) {
+        int[] b = bar();
+        if (b == null) return;
+        boolean hot = dragBar || Gfx.in(lmx, lmy, b[0] - 6, b[1], b[2] + 8, b[3]);
+        Gfx.rrect(c, b[0] + 1, b[1], 4, b[3], ca(hot ? 0x38FFFFFF : 0x1CFFFFFF), true);
+        Gfx.rrect(c, b[0] + (hot ? 0 : 1), b[4], hot ? 6 : 4, b[5], ca(dragBar ? acc() : hot ? 0xFF8A93AA : 0xFF565E73), true);
+    }
+
+    private void dragTo(double my) {
+        int[] b = bar();
+        if (b == null) return;
+        float max = maxScroll();
+        float f = (float) ((my - barGrab - gy) / Math.max(1.0, gh - b[5]));
+        scrollT = Math.max(0, Math.min(max, f * max));
+        scroll = scrollT;
     }
 
     private void renderServers(DrawContext c, int mx, int my) {
@@ -440,21 +556,34 @@ public class ModMenuScreen extends Screen {
             Ui.text(c, textRenderer, opt.name, gx + 66, py + HEAD + 8, ca(TEXT), true);
             btn(c, gx + gw - 62, py + HEAD + 4, 62, 14, "SIFIRLA", Theme.btn(), mx, my);
         } else {
-            btn(c, gx, py + HEAD + 4, 116, 14, "PROFİLİ KOPYALA", Theme.btn(), mx, my);
-            btn(c, gx + 120, py + HEAD + 4, 90, 14, "PANODAN AL", Theme.btn(), mx, my);
+            drawChips(c, SET_CHIPS, setChip);
         }
-        int n = rowCount(), ctlR = gx + gw - 14;
+        List<Object> rows = rows();
+        int n = rows.size(), ctlR = gx + gw - 14;
+        boolean an = anim();
         c.enableScissor(gx - 2, gy, gx + gw + 2, gy + gh);
         for (int i = 0; i < n; i++) {
             int y = gy + 2 + i * ROW - Math.round(scroll);
             if (y + ROW < gy || y > gy + gh) continue;
+            Object o = rows.get(i);
+            if (o instanceof String str && str.startsWith("#")) {
+                Ui.spaced(c, textRenderer, str.substring(1), gx + 4, y + 6, ca(acc()), false);
+                c.fill(gx, y + ROW - 3, gx + gw - 6, y + ROW - 2, ca(Theme.line()));
+                continue;
+            }
             Gfx.rrect(c, gx, y, gw - 6, ROW - 2, ca((i & 1) == 0 ? Theme.card() : 0xFF111318), true);
-            Setting s = rowSetting(i);
-            if (s == null) {
+            if (o == null) {
                 Ui.text(c, textRenderer, "Modül aktif", gx + 8, y + 5, ca(TEXT), false);
                 drawSwitch(c, ctlR - 28, y + 3, opt.anim);
                 continue;
             }
+            if (o instanceof String act) {
+                boolean copy = act.equals("@copy");
+                Ui.text(c, textRenderer, copy ? "Aktif profili panoya kopyala" : "Panodan profil içe aktar", gx + 8, y + 5, ca(TEXT), false);
+                btn(c, ctlR - 80, y + 2, 80, 14, copy ? "KOPYALA" : "İÇE AKTAR", Theme.btn(), mx, my);
+                continue;
+            }
+            Setting s = (Setting) o;
             Ui.text(c, textRenderer, Ui.fit(textRenderer, s.label, Math.max(40, gw - 130)), gx + 8, y + 5, ca(TEXT), false);
             int bx = ctlX(s, ctlR);
             if (s.key.equals("editnote")) {
@@ -463,7 +592,7 @@ public class ModMenuScreen extends Screen {
             }
             switch (s.type) {
                 case BOOL -> {
-                    float t = Anim.to(sw.getOrDefault(s, s.on() ? 1f : 0f), s.on() ? 1f : 0f, 16f);
+                    float t = an ? Anim.to(sw.getOrDefault(s, s.on() ? 1f : 0f), s.on() ? 1f : 0f, 16f) : (s.on() ? 1f : 0f);
                     sw.put(s, t);
                     drawSwitch(c, bx, y + 3, t);
                 }
@@ -529,21 +658,37 @@ public class ModMenuScreen extends Screen {
         }
 
         // yan panel
-        int sx = px + 6, sy = py + HEAD, shh = ph - HEAD - 6, ry = sy + 20;
-        for (String n : Profiles.names()) {
-            if (ry > sy + shh - 52) break;
-            if (Gfx.in(mx, my, sx + 3, ry, side - 6, 14)) {
-                click();
-                boolean custom = !Profiles.isBuiltin(n);
-                if (custom && mx >= sx + side - 16 && b == 0) Profiles.delete(n);
-                else if (custom && (b == 1 || mx >= sx + side - 30)) { editTarget = n; openEdit(2, n); }
-                else Profiles.switchTo(n);
-                return true;
+        int sx = px + 6, sy = py + HEAD, shh = ph - HEAD - 6;
+        int stop = sy + 4, sbot = sy + shh - 46;
+        if (Gfx.in(mx, my, sx + 3, stop, side - 6, sbot - stop)) {
+            int y = stop - sideScroll;
+            for (Object[] e : sideEntries()) {
+                int kind = (int) e[0];
+                if (kind == 0) { y += SH_H; continue; }
+                if (kind != 3 && Gfx.in(mx, my, sx + 3, y, side - 6, 14)) {
+                    String n = (String) e[1];
+                    click();
+                    boolean custom = kind == 2;
+                    if (custom && mx >= sx + side - 16 && b == 0) Profiles.delete(n);
+                    else if (custom && (b == 1 || mx >= sx + side - 30)) { editTarget = n; openEdit(2, n); }
+                    else Profiles.switchTo(n);
+                    return true;
+                }
+                y += SI_H;
             }
-            ry += 16;
+            return true;
         }
         if (Gfx.in(mx, my, sx + 3, sy + shh - 40, side - 6, 16)) { click(); openEdit(1, Profiles.nextName()); return true; }
         if (Gfx.in(mx, my, sx + 3, sy + shh - 20, side - 6, 16)) { click(); client.setScreen(new HudEditScreen()); return true; }
+
+        // kaydırma çubuğu (geniş tıklama alanı): sürükle ya da boşluğa tıklayıp zıpla
+        int[] bar = bar();
+        if (bar != null && Gfx.in(mx, my, bar[0] - 6, bar[1], bar[2] + 8, bar[3])) {
+            barGrab = (my >= bar[4] && my <= bar[4] + bar[5]) ? (float) (my - bar[4]) : bar[5] / 2f;
+            dragBar = true;
+            dragTo(my);
+            return true;
+        }
 
         if (grid()) {
             int cx = gx;
@@ -621,23 +766,27 @@ public class ModMenuScreen extends Screen {
                 return true;
             }
         } else {
-            if (Gfx.in(mx, my, gx, py + HEAD + 4, 116, 14)) {
-                click();
-                client.keyboard.setClipboard(Profiles.export());
-                toast("Profil panoya kopyalandı");
-                return true;
-            }
-            if (Gfx.in(mx, my, gx + 120, py + HEAD + 4, 90, 14)) {
-                click();
-                toast(Profiles.importFrom(client.keyboard.getClipboard()) ? "Profil içe aktarıldı" : "Panoda geçerli profil yok");
-                return true;
-            }
+            int ch = chipAt(mx, my, SET_CHIPS);
+            if (ch >= 0) { click(); setChip = ch; scroll = scrollT = 0; return true; }
         }
         if (my >= gy && my <= gy + gh) {
             int i = (int) Math.floor((my - gy - 2 + Math.round(scroll)) / (double) ROW);
-            if (i >= 0 && i < rowCount()) {
-                Setting s = rowSetting(i);
-                if (s == null) { click(); opt.toggle(); return true; }
+            List<Object> rows = rows();
+            if (i >= 0 && i < rows.size()) {
+                Object o = rows.get(i);
+                if (o == null) { click(); opt.toggle(); return true; }
+                if (o instanceof String str) {
+                    if (str.equals("@copy")) {
+                        click();
+                        client.keyboard.setClipboard(Profiles.export());
+                        toast("Profil panoya kopyalandı");
+                    } else if (str.equals("@paste")) {
+                        click();
+                        toast(Profiles.importFrom(client.keyboard.getClipboard()) ? "Profil içe aktarıldı" : "Panoda geçerli profil yok");
+                    }
+                    return true;
+                }
+                Setting s = (Setting) o;
                 if (s.key.equals("editnote")) { click(); openEdit(6, Notes.text); return true; }
                 int ctlR = gx + gw - 14, bx = ctlX(s, ctlR);
                 if (s.type == Setting.Type.INT) {
@@ -658,6 +807,10 @@ public class ModMenuScreen extends Screen {
 
     @Override
     public boolean mouseDragged(Click click, double dx, double dy) {
+        if (dragBar) {
+            dragTo(click.y());
+            return true;
+        }
         if (dragSet != null) {
             dragSet.setFraction((click.x() - dragX) / 70.0);
             refreshOpt();
@@ -675,11 +828,18 @@ public class ModMenuScreen extends Screen {
     public boolean mouseReleased(Click click) {
         dragSet = null;
         dragScroll = false;
+        dragBar = false;
         return super.mouseReleased(click);
     }
 
     @Override
     public boolean mouseScrolled(double mx, double my, double hAmount, double vAmount) {
+        layout();
+        if (Gfx.in(mx, my, px + 6, py + HEAD, side, ph - HEAD - 6)) {
+            int listH = ph - HEAD - 6 - 50;
+            sideScroll = Math.max(0, Math.min(sideMax(listH), sideScroll - (int) (vAmount * 16)));
+            return true;
+        }
         setScroll(scrollT - (float) vAmount * 26f);
         return true;
     }

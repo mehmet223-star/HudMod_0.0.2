@@ -41,15 +41,18 @@ final class Mods {
     static Setting g(String key) { return GMAP.get(key); }
 
     static {
-        g(Setting.color("accent", "Vurgu rengi", 6));
-        g(Setting.choice("theme", "Menü teması", 1, "Özel (vurgu rengi)", "Gece", "Mor", "Kırmızı", "Yeşil", "Turuncu", "Okyanus", "Pembe", "Gümüş"));
-        g(Setting.num("gscale", "Genel HUD boyutu", 50, 200, 10, 100, "%"));
-        g(Setting.bool("perf", "Performans modu (HUD daha seyrek güncellenir)", false));
-        g(Setting.bool("snap", "Editörde ızgaraya yapış", true));
-        g(Setting.num("grid", "Izgara boyutu", 1, 20, 1, 4, " px"));
-        g(Setting.bool("guides", "Hizalama çizgileri", true));
-        g(Setting.bool("splash", "Açılış animasyonu", true));
-        g(Setting.bool("font", "Özel yazı tipi (Poppins)", true));
+        g(Setting.color("accent", "Vurgu rengi", 6).grp("GÖRÜNÜM"));
+        g(Setting.choice("theme", "Menü teması", 1, "Özel (vurgu rengi)", "Gece", "Mor", "Kırmızı", "Yeşil", "Turuncu", "Okyanus", "Pembe", "Gümüş").grp("GÖRÜNÜM"));
+        g(Setting.bool("font", "Özel yazı tipi (Poppins)", true).grp("GÖRÜNÜM"));
+        g(Setting.num("menuDim", "Menü arka plan karartma", 0, 100, 5, 70, "%").grp("GÖRÜNÜM"));
+        g(Setting.bool("menuAnim", "Menü animasyonları", true).grp("GÖRÜNÜM"));
+        g(Setting.bool("splash", "Açılış animasyonu", true).grp("GÖRÜNÜM"));
+        g(Setting.bool("clickSound", "Tıklama sesi", true).grp("GÖRÜNÜM"));
+        g(Setting.num("gscale", "Genel HUD boyutu", 50, 200, 10, 100, "%").grp("HUD"));
+        g(Setting.bool("perf", "Performans modu (HUD daha seyrek güncellenir)", false).grp("HUD"));
+        g(Setting.bool("snap", "Editörde ızgaraya yapış", true).grp("EDİTÖR"));
+        g(Setting.num("grid", "Izgara boyutu", 1, 20, 1, 4, " px").grp("EDİTÖR"));
+        g(Setting.bool("guides", "Hizalama çizgileri", true).grp("EDİTÖR"));
     }
 
     static float gscale() { return g("gscale").value / 100f; }
