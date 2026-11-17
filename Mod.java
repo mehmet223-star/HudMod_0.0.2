@@ -25,6 +25,8 @@ public abstract class Mod {
     public final boolean hud;
 
     public boolean enabled, defEnabled, active, ready;
+    /** Kullanıcının favori işareti ve "YENİ" rozeti. */
+    public boolean fav, isNew;
     public float anim, hover;
     public int idx, interval = 5;
 

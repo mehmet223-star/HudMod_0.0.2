@@ -173,6 +173,7 @@ final class Extra5 {
                             Setting[] extra, int ah, int av, int ox, int oy) {
         TextMod m = Mods.t(id, name, Mod.Cat.HUD, icon, false, iv, u, extra);
         m.desc = desc;
+        m.isNew = true;
         Mods.add(m.at(ah, av, ox, oy), true);
     }
 }

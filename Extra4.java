@@ -29,6 +29,7 @@ final class Extra4 {
 
     static void init() {
         skin = new SkinChanger(false);
+        skin.isNew = true;
         Mods.add(skin.at(0, 0, 0, 0), false);
     }
 

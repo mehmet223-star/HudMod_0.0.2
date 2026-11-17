@@ -42,7 +42,7 @@ final class Mods {
 
     static {
         g(Setting.color("accent", "Vurgu rengi", 6).grp("GÖRÜNÜM"));
-        g(Setting.choice("theme", "Menü teması", 1, "Özel (vurgu rengi)", "Gece", "Mor", "Kırmızı", "Yeşil", "Turuncu", "Okyanus", "Pembe", "Gümüş").grp("GÖRÜNÜM"));
+        g(Setting.choice("theme", "Menü teması", 9, "Özel (vurgu rengi)", "Gece", "Mor", "Kırmızı", "Yeşil", "Turuncu", "Okyanus", "Pembe", "Gümüş", "Lunar").grp("GÖRÜNÜM"));
         g(Setting.bool("font", "Özel yazı tipi (Poppins)", true).grp("GÖRÜNÜM"));
         g(Setting.num("menuDim", "Menü arka plan karartma", 0, 100, 5, 70, "%").grp("GÖRÜNÜM"));
         g(Setting.bool("menuAnim", "Menü animasyonları", true).grp("GÖRÜNÜM"));

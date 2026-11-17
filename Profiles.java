@@ -2,6 +2,7 @@ package com.example.hudmod;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -151,6 +152,12 @@ final class Profiles {
                     for (Setting s : Mods.GLOBAL) if (go.has(s.key)) { s.value = go.get(s.key).getAsInt(); s.clamp(); }
                 }
                 if (root.has("current")) current = root.get("current").getAsString();
+                if (root.has("fav")) {
+                    for (JsonElement fe : root.getAsJsonArray("fav")) {
+                        Mod fm = Mods.byId(fe.getAsString());
+                        if (fm != null) fm.fav = true;
+                    }
+                }
                 if (root.has("profiles")) {
                     for (Map.Entry<String, JsonElement> e : root.getAsJsonObject("profiles").entrySet()) {
                         DATA.put(e.getKey(), e.getValue().getAsJsonObject());
@@ -172,6 +179,9 @@ final class Profiles {
             for (Setting s : Mods.GLOBAL) go.addProperty(s.key, s.value);
             root.add("global", go);
             root.addProperty("current", current);
+            JsonArray fa = new JsonArray();
+            for (Mod fm : Mods.ALL) if (fm.fav) fa.add(fm.id);
+            root.add("fav", fa);
             JsonObject ps = new JsonObject();
             for (Map.Entry<String, JsonObject> e : DATA.entrySet()) ps.add(e.getKey(), e.getValue());
             root.add("profiles", ps);
