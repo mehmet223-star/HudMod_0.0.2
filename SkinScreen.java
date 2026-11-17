@@ -13,7 +13,7 @@ import java.util.List;
 
 /** Ana menüdeki Skin ekranı: skin ve pelerin listesi, ön/arka önizleme. Sadece kendi ekranında uygulanır. */
 public class SkinScreen extends Screen {
-    private static final int TEXT = 0xFFE9EBF0, DIM = 0xFF858B99, ROWH = 14, HEAD = 26, FOOT = 30;
+    private static final int TEXT = 0xFFE9EBF0, DIM = 0xFF858B99, ROWH = 14, HEAD = 36, FOOT = 30;
 
     private final Screen parent;
     private int px, py, pw, ph, listW, scrollS, scrollC;
@@ -95,8 +95,8 @@ public class SkinScreen extends Screen {
             figure(c, skinImg, null, cx1 - 8 * s, fy, s, false);
             figure(c, skinImg, capeImg, cx2 - 8 * s, fy, s, true);
         } else {
-            Gfx.center(c, textRenderer, "Önizleme yok", midX + midW / 2, ty + listH / 2 - 4, DIM, false);
-            if (capeImg != null) figure(c, null, capeImg, cx2 - 8 * s, fy, s, true);
+            Gfx.center(c, textRenderer, "Skin seçilmedi", midX + midW / 2, ty + 6, DIM, false);
+            if (capeImg != null) figure(c, null, capeImg, midX + midW / 2 - 8 * s, fy, s, true);
         }
 
         // alt çubuk
@@ -106,7 +106,7 @@ public class SkinScreen extends Screen {
         btn(c, mx, my, px + 110, by, 84, "Yenile");
         btn(c, mx, my, px + pw - 8 - 70, by, 70, "Geri");
         String info = note.isEmpty() ? "● hazır  ·  sadece sen görürsün  ·  klasör: gdfclient" : note;
-        Ui.text(c, textRenderer, Ui.fit(textRenderer, info, pw - 400), px + 200, by + 4, DIM, false);
+        Ui.text(c, textRenderer, Ui.fit(textRenderer, info, Math.max(40, pw - 200 - 86 - 12)), px + 200, by + 4, DIM, false);
     }
 
     private void btn(DrawContext c, int mx, int my, int x, int y, int w, String s) {

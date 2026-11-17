@@ -12,7 +12,7 @@ import net.minecraft.util.Identifier;
 import java.util.HashMap;
 import java.util.Map;
 
-/** Client yazıları: özel font (Poppins) + Lunar tarzı harf aralıklı başlıklar. Font yoksa oyunun yazısına düşer. */
+/** Client yazıları: özel font (Poppins) + Feather tarzı harf aralıklı başlıklar. Font yoksa oyunun yazısına düşer. */
 final class Ui {
     private Ui() {}
 
