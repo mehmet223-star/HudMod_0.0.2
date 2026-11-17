@@ -28,6 +28,13 @@ public final class Gfx {
         c.drawText(tr, s, cx - tr.getWidth(s) / 2, y, col, shadow);
     }
 
+    /** Yukarıdan aşağıya renk geçişi (alfa dahil). */
+    public static void vgrad(DrawContext c, int x, int y, int w, int h, int top, int bottom) {
+        for (int i = 0; i < h; i++) {
+            c.fill(x, y + i, x + w, y + i + 1, Anim.mix(top, bottom, h <= 1 ? 0f : i / (float) (h - 1)));
+        }
+    }
+
     public static boolean in(double mx, double my, int x, int y, int w, int h) {
         return mx >= x && mx <= x + w && my >= y && my <= y + h;
     }

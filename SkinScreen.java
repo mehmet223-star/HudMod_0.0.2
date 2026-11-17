@@ -8,7 +8,7 @@ import net.minecraft.text.Text;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.nio.file.Path;
+import java.io.ByteArrayInputStream;
 import java.util.List;
 
 /** Ana menüdeki Skin ekranı: skin ve pelerin listesi, ön/arka önizleme. Sadece kendi ekranında uygulanır. */
@@ -43,8 +43,8 @@ public class SkinScreen extends Screen {
         listW = Math.max(80, (pw - 24) / 3);
     }
 
-    private BufferedImage read(Path p) {
-        try { return ImageIO.read(p.toFile()); } catch (Throwable t) { return null; }
+    private BufferedImage read(Extra4.Entry e) {
+        try { return ImageIO.read(new ByteArrayInputStream(e.bytes())); } catch (Throwable t) { return null; }
     }
 
     private void loadPreview() {
@@ -105,7 +105,7 @@ public class SkinScreen extends Screen {
         btn(c, mx, my, px + 8, by, 96, mt[m.sModel.value]);
         btn(c, mx, my, px + 110, by, 84, "Yenile");
         btn(c, mx, my, px + pw - 8 - 70, by, 70, "Geri");
-        String info = note.isEmpty() ? "Sadece sen görürsün · klasör: gdfclient/skins" : note;
+        String info = note.isEmpty() ? "● hazır  ·  sadece sen görürsün  ·  klasör: gdfclient" : note;
         Ui.text(c, textRenderer, Ui.fit(textRenderer, info, pw - 400), px + 200, by + 4, DIM, false);
     }
 
@@ -115,7 +115,7 @@ public class SkinScreen extends Screen {
         Ui.center(c, textRenderer, s, x + w / 2, y + 5, TEXT, false);
     }
 
-    private void drawList(DrawContext c, int mx, int my, int x, int y, int h, List<Path> items, int sel, int scroll, String off) {
+    private void drawList(DrawContext c, int mx, int my, int x, int y, int h, List<Extra4.Entry> items, int sel, int scroll, String off) {
         Gfx.rrect(c, x, y, listW, h, 0x20FFFFFF, true);
         int rows = h / ROWH;
         int acc = 0xFF000000 | Mods.accent();
@@ -126,11 +126,15 @@ public class SkinScreen extends Screen {
             boolean hov = Gfx.in(mx, my, x, ry, listW, ROWH);
             if (idx == sel) c.fill(x + 1, ry, x + listW - 1, ry + ROWH, (0x55 << 24) | (acc & 0xFFFFFF));
             else if (hov) c.fill(x + 1, ry, x + listW - 1, ry + ROWH, 0x25FFFFFF);
-            String s = idx == 0 ? off : Extra4.label(items.get(idx - 1));
-            Ui.text(c, textRenderer, Ui.fit(textRenderer, s, listW - 10), x + 5, ry + 3, idx == sel ? TEXT : DIM, false);
+            String s = idx == 0 ? off : items.get(idx - 1).label;
+            boolean pre = idx > 0 && items.get(idx - 1).preset();
+            if (pre) c.fill(x + 4, ry + 5, x + 7, ry + 8, acc);
+            Ui.text(c, textRenderer, Ui.fit(textRenderer, s, listW - (pre ? 16 : 10)), x + (pre ? 11 : 5), ry + 3, idx == sel ? TEXT : DIM, false);
         }
-        if (items.isEmpty()) {
-            Ui.text(c, textRenderer, "PNG ekle", x + 5, y + ROWH + 3, DIM, false);
+        if (items.size() > 0 && !items.get(items.size() - 1).preset()) {
+            // klasördeki PNG'ler var, ek bilgiye gerek yok
+        } else {
+            Ui.text(c, textRenderer, "Kendi PNG'ni klasöre at", x + 5, y + h - 12, 0xFF5A6070, false);
         }
     }
 

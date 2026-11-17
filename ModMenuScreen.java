@@ -77,6 +77,8 @@ public class ModMenuScreen extends Screen {
         return (a << 24) | (argb & 0xFFFFFF);
     }
 
+    private static int wa(int rgb, int a) { return (Math.max(0, Math.min(255, a)) << 24) | (rgb & 0xFFFFFF); }
+
     private boolean anim() { return Mods.g("menuAnim").on(); }
 
     private int dimColor() { return Math.round(Mods.g("menuDim").value * 2.55f) << 24; }
@@ -276,8 +278,13 @@ public class ModMenuScreen extends Screen {
         var m = c.getMatrices();
         m.pushMatrix();
         m.translate(0f, (1f - open) * 12f);
+        // gölge + panel + ince çerçeve + üstte vurgu rengi parıltısı
+        Gfx.rrect(c, px - 3, py - 2, pw + 6, ph + 7, ca(0x22000000), true);
+        Gfx.rrect(c, px - 1, py - 1, pw + 2, ph + 3, ca(0x44000000), true);
         Gfx.rrect(c, px, py, pw, ph, ca(Theme.panel()), true);
-        c.fill(px + 8, py, px + 8 + (int) ((pw - 16) * open), py + 1, ca(acc()));
+        Gfx.vgrad(c, px + 1, py + 1, pw - 2, 44, ca(wa(acc(), 0x30)), ca(wa(acc(), 0x00)));
+        Gfx.border(c, px, py, pw, ph, ca(Anim.mix(Theme.line(), acc(), 0.18f)));
+        c.fill(px + 8, py, px + 8 + (int) ((pw - 16) * open), py + 2, ca(acc()));
 
         // logo
         m.pushMatrix();
@@ -295,9 +302,10 @@ public class ModMenuScreen extends Screen {
         for (int i = 0; i < tabs().length; i++) {
             int w = Ui.sw(textRenderer, tabs()[i]) + 18;
             boolean sel = opt == null ? tab == i : i == 0;
-            boolean hov = Gfx.in(mx, my, tx, py + 9, w, 14);
-            Gfx.rrect(c, tx, py + 9, w, 14, ca(sel ? Anim.mix(Theme.btn(), acc(), 0.35f) : hov ? Theme.btn() : 0xFF171A21), true);
-            Ui.spacedCenter(c, textRenderer, tabs()[i], tx + w / 2, py + 13, ca(sel ? TEXT : DIM), false);
+            boolean hov = Gfx.in(mx, my, tx, py + 9, w, 16);
+            if (sel) Gfx.rrect(c, tx + 3, py + 23, w - 6, 2, ca(acc()), false);
+            else if (hov) c.fill(tx + 6, py + 24, tx + w - 6, py + 25, ca(0x44FFFFFF));
+            Ui.spacedCenter(c, textRenderer, tabs()[i], tx + w / 2, py + 13, ca(sel ? TEXT : hov ? 0xFFB8BFCE : DIM), false);
             tx += w + 5;
         }
 
@@ -441,31 +449,44 @@ public class ModMenuScreen extends Screen {
             boolean hov = Gfx.in(mx, my, x, y, cardW, CH) && my >= gy && my <= gy + gh;
             if (hov) hoverMod = md;
             md.hover = anim() ? Anim.to(md.hover, hov ? 1f : 0f, 14f) : (hov ? 1f : 0f);
+            float en = md.anim;
+            int accent = acc();
             Gfx.rrect(c, x, y, cardW, CH, ca(Anim.mix(Theme.card(), Theme.cardHov(), md.hover)), true);
-            int la = Math.round(255 * md.hover);
-            if (la > 8) c.fill(x + 4, y, x + cardW - 4, y + 1, ca((la << 24) | (acc() & 0xFFFFFF)));
+            if (en > 0.02f) Gfx.vgrad(c, x + 1, y + 1, cardW - 2, 36, ca(wa(accent, Math.round(0x34 * en))), ca(wa(accent, 0)));
+            Gfx.border(c, x, y, cardW, CH, ca(Anim.mix(Theme.line(), accent, Math.max(en * 0.85f, md.hover * 0.35f))));
 
+            // kategori etiketi
+            Ui.spaced(c, textRenderer, md.cat.label, x + 6, y + 5, ca(Anim.mix(0xFF4A5164, accent, en)), false);
+
+            // ikon + yumuşak zemin
+            int ix = x + cardW / 2;
+            Gfx.rrect(c, ix - 19, y + 8 - Math.round(md.hover * 1.5f), 38, 38, ca(Anim.mix(wa(0xFFFFFF, 0x0C), wa(accent, 0x30), en)), true);
             mat.pushMatrix();
-            mat.translate(x + cardW / 2f - 16f, y + 5f - md.hover * 2f);
+            mat.translate(ix - 16f, y + 11f - md.hover * 1.5f);
             mat.scale(2f, 2f);
             c.drawItem(md.icon, 0, 0);
             mat.popMatrix();
 
-            Ui.center(c, textRenderer, md.name, x + cardW / 2, y + 42, ca(Anim.mix(DIM, TEXT, md.hover)), false);
-            btn(c, x + 4, y + 54, cardW - 8, 11, "OPTIONS", Theme.btn(), mx, my);
-            boolean th = Gfx.in(mx, my, x + 4, y + 66, cardW - 8, 11);
-            Gfx.rrect(c, x + 4, y + 66, cardW - 8, 11,
-                    ca(Anim.mix(Anim.mix(RED, GREEN, md.anim), 0xFFFFFFFF, th ? 0.12f : 0f)), true);
-            Ui.spacedCenter(c, textRenderer, md.enabled ? "ENABLED" : "DISABLED", x + cardW / 2, y + 68, ca(0xFFFFFFFF), false);
+            Ui.center(c, textRenderer, Ui.fit(textRenderer, md.name, cardW - 8), ix, y + 49, ca(Anim.mix(0xFFB0B7C6, TEXT, Math.max(md.hover, en))), false);
+
+            // alt satır: aç/kapat hapı + ayar düğmesi
+            boolean th = Gfx.in(mx, my, x + 4, y + 62, cardW - 44, 14);
+            Gfx.rrect(c, x + 4, y + 62, cardW - 44, 14,
+                    ca(Anim.mix(Anim.mix(Theme.btn(), GREEN, en), 0xFFFFFFFF, th ? 0.12f : 0f)), true);
+            Ui.spacedCenter(c, textRenderer, md.enabled ? "AÇIK" : "KAPALI", x + 4 + (cardW - 44) / 2, y + 66,
+                    ca(md.enabled ? 0xFFFFFFFF : DIM), false);
+            btn(c, x + cardW - 38, y + 62, 34, 14, "AYAR", Theme.btn(), mx, my);
         }
         c.disableScissor();
         scrollbar(c);
 
-        if (hoverMod != null && hoverMod.hover > 0.85f && !hoverMod.desc.isEmpty()) {
-            int tw = Ui.w(textRenderer, hoverMod.desc) + 10;
+        if (hoverMod != null && hoverMod.hover > 0.85f) {
+            String tip = (hoverMod.desc.isEmpty() ? "" : hoverMod.desc + "  ·  ") + "Sağ tık: ayarlar";
+            int tw = Ui.w(textRenderer, tip) + 12;
             int tx = Math.max(4, Math.min(width - tw - 4, mx + 10)), ty = my + 12;
-            Gfx.rrect(c, tx, ty, tw, 14, ca(0xF0090A0E), true);
-            Ui.text(c, textRenderer, hoverMod.desc, tx + 5, ty + 3, ca(TEXT), false);
+            Gfx.rrect(c, tx, ty, tw, 16, ca(0xF2090A0E), true);
+            Gfx.border(c, tx, ty, tw, 16, ca(Theme.line()));
+            Ui.text(c, textRenderer, tip, tx + 6, ty + 4, ca(TEXT), false);
         }
     }
 
@@ -701,8 +722,16 @@ public class ModMenuScreen extends Screen {
                 List<Mod> l = list();
                 for (int i = 0; i < l.size(); i++) {
                     int x = gx + (i % cols) * (cardW + GAP), y = gy + (i / cols) * (CH + GAP) - Math.round(scroll);
-                    if (Gfx.in(mx, my, x + 4, y + 66, cardW - 8, 11)) { click(); l.get(i).toggle(); return true; }
-                    if (Gfx.in(mx, my, x + 4, y + 54, cardW - 8, 11)) { click(); opt = l.get(i); scroll = scrollT = 0; return true; }
+                    boolean inCard = Gfx.in(mx, my, x, y, cardW, CH);
+                    if (!inCard) continue;
+                    // sağ tık (mobilde uzun basış) kartın herhangi bir yerinde ayarları açar
+                    if (b == 1 || Gfx.in(mx, my, x + cardW - 38, y + 62, 34, 14)) {
+                        click();
+                        opt = l.get(i);
+                        scroll = scrollT = 0;
+                        return true;
+                    }
+                    if (Gfx.in(mx, my, x + 4, y + 62, cardW - 44, 14)) { click(); l.get(i).toggle(); return true; }
                 }
                 dragScroll = true;
             }

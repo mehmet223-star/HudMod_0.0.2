@@ -8,6 +8,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.RecordComponent;
 import java.nio.file.Files;
@@ -45,6 +46,54 @@ final class Extra4 {
         } catch (Exception ignored) {}
         Collections.sort(out);
         return out;
+    }
+
+    /** Hazır (jar içindeki) ve kullanıcı (klasördeki) skin/pelerin kaydı. */
+    static final class Entry {
+        final String label;
+        final Path path;
+        final String res;
+
+        Entry(String label, Path path, String res) {
+            this.label = label;
+            this.path = path;
+            this.res = res;
+        }
+
+        boolean preset() { return res != null; }
+
+        byte[] bytes() throws Exception {
+            if (res != null) {
+                try (InputStream in = Extra4.class.getResourceAsStream("/assets/hudmod/presets/" + res)) {
+                    if (in == null) throw new java.io.FileNotFoundException(res);
+                    return in.readAllBytes();
+                }
+            }
+            return Files.readAllBytes(path);
+        }
+
+        String key() {
+            if (res != null) return "res:" + res;
+            String k = path.toString();
+            try { k += "|" + Files.getLastModifiedTime(path).toMillis(); } catch (Exception ignored) {}
+            return k;
+        }
+    }
+
+    static final String[][] PRESET_SKINS = {
+            {"neon", "Neon Mavi"}, {"ninja", "Kırmızı Ninja"}, {"sovalye", "Altın Şövalye"},
+            {"golge", "Gece Gölgesi"}, {"buz", "Buz Savaşçısı"}, {"alev", "Alev"},
+            {"orman", "Orman Okçusu"}, {"mace", "Mace Ustası"}, {"gdf", "GDF Takım"}};
+    static final String[][] PRESET_CAPES = {
+            {"gdf", "GDF Mavi"}, {"alev", "Alev"}, {"okyanus", "Okyanus"}, {"gece", "Gece Yıldızları"},
+            {"altin", "Altın"}, {"gokkusagi", "Gökkuşağı"}, {"buz", "Buz"}, {"zumrut", "Zümrüt"}};
+
+    /** Önce hazır olanlar, sonra klasördeki PNG'ler. */
+    static List<Entry> entries(String sub, String[][] presets) {
+        List<Entry> r = new ArrayList<>();
+        for (String[] p : presets) r.add(new Entry(p[1], null, sub + "/" + p[0] + ".png"));
+        for (Path p : list(sub)) r.add(new Entry(label(p), p, null));
+        return r;
     }
 
     static String label(Path p) {
@@ -130,9 +179,9 @@ final class Extra4 {
 
     // ================= Doku yükleme =================
     /** PNG'yi okuyup verilen kimlikle kaydeder. Başarılıysa null, değilse hata mesajı döner. */
-    static String loadTexture(MinecraftClient mc, Path p, Identifier id, boolean cape) {
+    static String loadTexture(MinecraftClient mc, Entry e, Identifier id, boolean cape) {
         try {
-            NativeImage img = NativeImage.read(new ByteArrayInputStream(Files.readAllBytes(p)));
+            NativeImage img = NativeImage.read(new ByteArrayInputStream(e.bytes()));
             int w = img.getWidth(), h = img.getHeight();
             boolean ok = cape ? (w == 64 && h == 32) : (w == 64 && h == 64);
             if (!ok) {
@@ -171,8 +220,8 @@ final class Extra4 {
     // ================= Modül =================
     static final class SkinChanger extends Mod {
         final Setting sSkin, sCape, sModel, sReload;
-        final List<Path> files = new ArrayList<>();
-        final List<Path> capes = new ArrayList<>();
+        final List<Entry> files = new ArrayList<>();
+        final List<Entry> capes = new ArrayList<>();
         private String loadedKey = "", capeKey = "";
         boolean loaded, capeLoaded;
 
@@ -197,17 +246,17 @@ final class Extra4 {
 
         void rescan() {
             files.clear();
-            files.addAll(list("skins"));
+            files.addAll(entries("skins", PRESET_SKINS));
             String[] o = new String[files.size() + 1];
             o[0] = "Kapalı (kendi skinim)";
-            for (int i = 0; i < files.size(); i++) o[i + 1] = label(files.get(i));
+            for (int i = 0; i < files.size(); i++) o[i + 1] = files.get(i).label;
             sSkin.setOptions(o);
 
             capes.clear();
-            capes.addAll(list("capes"));
+            capes.addAll(entries("capes", PRESET_CAPES));
             String[] c = new String[capes.size() + 1];
             c[0] = "Kapalı";
-            for (int i = 0; i < capes.size(); i++) c[i + 1] = label(capes.get(i));
+            for (int i = 0; i < capes.size(); i++) c[i + 1] = capes.get(i).label;
             sCape.setOptions(c);
             loadedKey = "";
             capeKey = "";
@@ -236,13 +285,13 @@ final class Extra4 {
                 loaded = false;
                 loadedKey = "";
             } else {
-                Path p = files.get(i - 1);
-                String key = key(p);
+                Entry p = files.get(i - 1);
+                String key = p.key();
                 if (!key.equals(loadedKey)) {
                     loadedKey = key;
                     String err = loadTexture(mc, p, TEX_ID, false);
                     loaded = err == null;
-                    msg(mc, err == null ? "Skin yüklendi: " + p.getFileName() : err);
+                    msg(mc, err == null ? "Skin yüklendi: " + p.label : err);
                 }
             }
             int j = sCape.value;
@@ -250,21 +299,15 @@ final class Extra4 {
                 capeLoaded = false;
                 capeKey = "";
             } else {
-                Path p = capes.get(j - 1);
-                String key = key(p);
+                Entry p = capes.get(j - 1);
+                String key = p.key();
                 if (!key.equals(capeKey)) {
                     capeKey = key;
                     String err = loadTexture(mc, p, CAPE_ID, true);
                     capeLoaded = err == null;
-                    msg(mc, err == null ? "Pelerin yüklendi: " + p.getFileName() : err);
+                    msg(mc, err == null ? "Pelerin yüklendi: " + p.label : err);
                 }
             }
-        }
-
-        private static String key(Path p) {
-            String k = p.toString();
-            try { k += "|" + Files.getLastModifiedTime(p).toMillis(); } catch (Exception ignored) {}
-            return k;
         }
 
         private static void msg(MinecraftClient mc, String s) {

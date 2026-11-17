@@ -91,6 +91,7 @@ final class Mods {
         if (now - lastHit > 2000) combo = 0;
         combo++;
         lastHit = now;
+        Extra5.hits++;
         ExtraMods.onAttack(e);
     }
 
@@ -212,6 +213,7 @@ final class Mods {
         Extra2.init();
         Extra3.init();
         Extra4.init();
+        Extra5.init();
         describe();
     }
 
