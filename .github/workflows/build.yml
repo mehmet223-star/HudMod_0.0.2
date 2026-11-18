@@ -22,6 +22,7 @@ jobs:
           mv fabric.mod.json hudmod.mixins.json src/main/resources/
           mv en_us.json tr_tr.json src/main/resources/assets/hudmod/lang/
           mv gdf.ttf gdfbold.ttf gdf.json gdfbold.json src/main/resources/assets/hudmod/font/
+          mv f_*.ttf f_*.json src/main/resources/assets/hudmod/font/
           for f in ps_*.png; do mv "$f" "src/main/resources/assets/hudmod/presets/skins/${f#ps_}"; done
           for f in pc_*.png; do mv "$f" "src/main/resources/assets/hudmod/presets/capes/${f#pc_}"; done
       - run: gradle build
