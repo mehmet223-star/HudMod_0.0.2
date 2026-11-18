@@ -157,6 +157,7 @@ public class HudMod implements ClientModInitializer {
 
         if (ExtraMods.alerts != null && ExtraMods.alerts.active) ExtraMods.alerts.render(c, mc.textRenderer, sw, sh);
         if (Extra2.hitbox != null && Extra2.hitbox.active) Extra2.hitbox.render(c, mc, sw, sh);
+        Extra6.overlay(c, mc, sw, sh);
         if (ExtraMods.waypoints != null && ExtraMods.waypoints.active) ExtraMods.waypoints.render(c, mc, sw, sh);
 
         for (Mod m : Mods.ALL) {

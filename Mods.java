@@ -92,6 +92,7 @@ final class Mods {
         combo++;
         lastHit = now;
         Extra5.hits++;
+        Extra6.lastHit = now;
         ExtraMods.onAttack(e);
     }
 
@@ -214,6 +215,7 @@ final class Mods {
         Extra3.init();
         Extra4.init();
         Extra5.init();
+        Extra6.init();
         describe();
     }
 
