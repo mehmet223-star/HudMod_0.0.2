@@ -44,18 +44,38 @@ final class Extra2 {
     // ================= Hitbox =================
     /** Yakındaki canlıların hitbox'ını ekrana tel kafes olarak çizer (sadece birinci şahıs görünümde). */
     static final class HitboxMod extends Mod {
-        private final Setting sPl, sDist, sMax, sCol;
+        private final Setting sPl, sDist, sMax, sCol, sTh, sWall;
+        private final java.util.HashMap<Integer, Boolean> vis = new java.util.HashMap<>();
+        private long visT;
 
         HitboxMod(boolean en) {
             super("hitbox", "Hitbox", Cat.PVP, Items.IRON_HELMET, false, en);
             sPl = Setting.bool("pl", "Sadece oyuncular", true);
-            sDist = Setting.num("dist", "Mesafe", 4, 32, 2, 16, " b");
+            sDist = Setting.num("dist", "Mesafe", 8, 128, 8, 64, " b");
             sMax = Setting.num("max", "En fazla kutu", 1, 12, 1, 6, "");
             sCol = Setting.color("col", "Renk", 1);
+            sTh = Setting.num("th", "Çizgi kalınlığı", 1, 3, 1, 1, " px");
+            sWall = Setting.bool("wall", "Duvar arkasındakileri de göster", false);
             add(sPl);
             add(sDist);
             add(sMax);
             add(sCol);
+            add(sTh);
+            add(sWall);
+        }
+
+        /** Gözden varlığın üç noktasına (ayak, gövde, göz) engelsiz bir ışın varsa görünür sayılır. */
+        private boolean visible(MinecraftClient mc, Entity e, Vec3d eye, Vec3d pos) {
+            double h = e.getHeight();
+            double[] ys = {h * 0.9, h * 0.5, h * 0.1};
+            for (double y : ys) {
+                Vec3d t = new Vec3d(pos.x, pos.y + y, pos.z);
+                var r = mc.world.raycast(new net.minecraft.world.RaycastContext(eye, t,
+                        net.minecraft.world.RaycastContext.ShapeType.COLLIDER,
+                        net.minecraft.world.RaycastContext.FluidHandling.NONE, mc.player));
+                if (r.getType() == net.minecraft.util.hit.HitResult.Type.MISS) return true;
+            }
+            return false;
         }
 
         void render(DrawContext c, MinecraftClient mc, int sw, int sh) {
@@ -63,21 +83,14 @@ final class Extra2 {
             if (p == null || mc.world == null) return;
             if (!mc.options.getPerspective().isFirstPerson()) return;
 
-            float pt = Math.min(1f, (System.nanoTime() - HudMod.tickNs) / 50_000_000f);
-            Vec3d lp = p.getLerpedPos(pt);
-            double cx = lp.x, cy = lp.y + p.getEyeHeight(p.getPose()), cz = lp.z;
-            double yaw = Math.toRadians(p.getYaw(pt)), pitch = Math.toRadians(p.getPitch(pt));
-            double sy = Math.sin(yaw), cyw = Math.cos(yaw), sp = Math.sin(pitch), cp = Math.cos(pitch);
-            double fx = -sy * cp, fy = -sp, fz = cyw * cp;      // ileri
-            double rx = -cyw, ry = 0, rz = -sy;                 // sağ
-            double ux = -sy * sp, uy = cp, uz = cyw * sp;       // yukarı
-            double tanV = Math.tan(Math.toRadians(mc.options.getFov().getValue()) / 2.0);
-            double tanH = tanV * sw / (double) sh;
+            float pt = Wire.partial();
+            Wire w = Wire.of(mc, sw, sh, pt);
+            Vec3d eye = new Vec3d(w.eyeX(), w.eyeY(), w.eyeZ());
 
-            double md = sDist.value * sDist.value;
+            double md = (double) sDist.value * sDist.value;
             List<Entity> list = new ArrayList<>();
             for (Entity e : mc.world.getEntities()) {
-                if (e == p || !(e instanceof LivingEntity)) continue;
+                if (e == p || !(e instanceof LivingEntity) || e.isSpectator()) continue;
                 if (sPl.on() && !(e instanceof PlayerEntity)) continue;
                 if (e.squaredDistanceTo(p) > md) continue;
                 list.add(e);
@@ -85,54 +98,22 @@ final class Extra2 {
             list.sort(Comparator.comparingDouble(en -> en.squaredDistanceTo(p)));
             int col = 0xFF000000 | Mods.colorOf(sCol.value, 0xFFFF5555);
 
+            long now = System.currentTimeMillis();
+            boolean refresh = now - visT > 100 || now < visT;
+            if (refresh) { vis.clear(); visT = now; }
+
             int n = 0;
             for (Entity e : list) {
-                if (n++ >= sMax.value) break;
+                if (n >= sMax.value) break;
                 Vec3d ep = e.getLerpedPos(pt);
+                if (!sWall.on()) {
+                    Boolean v = vis.get(e.getId());
+                    if (v == null) { v = visible(mc, e, eye, ep); vis.put(e.getId(), v); }
+                    if (!v) continue;
+                }
+                n++;
                 var b = e.getBoundingBox();
-                double ox = ep.x - e.getX(), oy = ep.y - e.getY(), oz = ep.z - e.getZ();
-                int[] xs = new int[8], ys = new int[8];
-                boolean ok = true;
-                for (int i = 0; i < 8; i++) {
-                    double wx = ((i & 1) == 0 ? b.minX : b.maxX) + ox;
-                    double wy = ((i & 2) == 0 ? b.minY : b.maxY) + oy;
-                    double wz = ((i & 4) == 0 ? b.minZ : b.maxZ) + oz;
-                    double vx = wx - cx, vy = wy - cy, vz = wz - cz;
-                    double zc = vx * fx + vy * fy + vz * fz;
-                    if (zc < 0.1) { ok = false; break; }
-                    double xc = vx * rx + vy * ry + vz * rz, yc = vx * ux + vy * uy + vz * uz;
-                    xs[i] = (int) Math.round(sw / 2.0 + (xc / zc) / tanH * (sw / 2.0));
-                    ys[i] = (int) Math.round(sh / 2.0 - (yc / zc) / tanV * (sh / 2.0));
-                }
-                if (!ok) continue;
-                for (int i = 0; i < 8; i++) {
-                    for (int bit = 1; bit < 8; bit <<= 1) {
-                        if ((i & bit) == 0) line(c, xs[i], ys[i], xs[i | bit], ys[i | bit], col);
-                    }
-                }
-            }
-        }
-
-        /** Tek piksel kalınlığında çizgi; aynı satırdaki pikseller tek fill'de birleştirilir. */
-        private static void line(DrawContext c, int x0, int y0, int x1, int y1, int col) {
-            int dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
-            if (dx > 3000 || dy > 3000) return;
-            if (dx >= dy) {
-                if (x0 > x1) { int t = x0; x0 = x1; x1 = t; t = y0; y0 = y1; y1 = t; }
-                int runStart = x0, runY = y0;
-                for (int x = x0; x <= x1; x++) {
-                    int y = dx == 0 ? y0 : (int) Math.round(y0 + (y1 - y0) * (x - x0) / (double) (x1 - x0));
-                    if (y != runY) { c.fill(runStart, runY, x, runY + 1, col); runStart = x; runY = y; }
-                }
-                c.fill(runStart, runY, x1 + 1, runY + 1, col);
-            } else {
-                if (y0 > y1) { int t = x0; x0 = x1; x1 = t; t = y0; y0 = y1; y1 = t; }
-                int runStart = y0, runX = x0;
-                for (int y = y0; y <= y1; y++) {
-                    int x = (int) Math.round(x0 + (x1 - x0) * (y - y0) / (double) (y1 - y0));
-                    if (x != runX) { c.fill(runX, runStart, runX + 1, y, col); runStart = y; runX = x; }
-                }
-                c.fill(runX, runStart, runX + 1, y1 + 1, col);
+                w.box(c, b, ep.x - e.getX(), ep.y - e.getY(), ep.z - e.getZ(), col, sTh.value, false);
             }
         }
     }

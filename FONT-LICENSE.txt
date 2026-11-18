@@ -1,3 +1,8 @@
 GDF Client bundles the Poppins font (Medium and Bold).
 Copyright 2020 The Poppins Project Authors (https://github.com/itfoundry/Poppins)
 Licensed under the SIL Open Font License, Version 1.1: https://scripts.sil.org/OFL
+
+Carlito (Copyright Lukasz Dziedzic, SIL Open Font License 1.1) - https://scripts.sil.org/OFL
+Caladea (Copyright Huerta Tipografica, SIL Open Font License 1.1) - https://scripts.sil.org/OFL
+Liberation Sans (Copyright Red Hat, Inc., SIL Open Font License 1.1) - https://scripts.sil.org/OFL
+DejaVu Sans and DejaVu Sans Mono (Copyright Bitstream, Inc.; DejaVu changes in public domain) - https://dejavu-fonts.github.io/License.html

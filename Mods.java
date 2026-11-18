@@ -43,7 +43,8 @@ final class Mods {
     static {
         g(Setting.color("accent", "Vurgu rengi", 6).grp("GÖRÜNÜM"));
         g(Setting.choice("theme", "Menü teması", 9, "Özel (vurgu rengi)", "Gece", "Mor", "Kırmızı", "Yeşil", "Turuncu", "Okyanus", "Pembe", "Gümüş", "Feather").grp("GÖRÜNÜM"));
-        g(Setting.bool("font", "Özel yazı tipi (Poppins)", true).grp("GÖRÜNÜM"));
+        g(Setting.bool("font", "Özel yazı tipi", true).grp("GÖRÜNÜM"));
+        g(Setting.choice("fontsel", "Yazı tipi seçimi", 0, "Poppins", "Carlito (yumuşak)", "Liberation (Arial)", "DejaVu (geniş)", "DejaVu Mono (kod)", "Caladea (serifli)").grp("GÖRÜNÜM"));
         g(Setting.num("menuDim", "Menü arka plan karartma", 0, 100, 5, 70, "%").grp("GÖRÜNÜM"));
         g(Setting.bool("menuAnim", "Menü animasyonları", true).grp("GÖRÜNÜM"));
         g(Setting.bool("splash", "Açılış animasyonu", true).grp("GÖRÜNÜM"));
@@ -216,6 +217,7 @@ final class Mods {
         Extra4.init();
         Extra5.init();
         Extra6.init();
+        Extra7.init();
         describe();
     }
 
@@ -262,7 +264,7 @@ final class Mods {
         d("fpsgraph", "FPS grafiği: kare sürelerini renkli çubuklarla gösterir.");
         d("togglesneak", "Eğilme tuşu aç/kapa olur, basılı tutmak gerekmez.");
         d("lowfire", "Yanarken ekranı kaplayan ateş görüntüsünü gizler.");
-        d("hitbox", "Yakındaki oyuncuların hitbox'ını tel kafes olarak çizer.");
+        d("hitbox", "Yakındaki oyuncuların hitbox'ını tel kafes olarak çizer. Duvar arkasındakiler gizlenir.");
         d("minimap", "Üstten bakan hafif harita; oyuncular ve waypointler görünür.");
         d("skinlayers", "Skin katmanlarını (ceket, kol, bacak, şapka, pelerin) ayarlar.");
         d("timechanger", "Sadece sende gündüz/gece saatini sabitler veya hızlı döndürür.");

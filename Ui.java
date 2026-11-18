@@ -17,26 +17,40 @@ final class Ui {
     private Ui() {}
 
     private static final Map<String, Text> CACHE = new HashMap<>();
-    private static int fontState; // 0 bilinmiyor, 1 var, 2 yok
+    /** Seçenek sırası Mods'taki "fontsel" ile aynı. Boş = Poppins (gdf). */
+    static final String[] FONT_KEYS = {"", "f_carlito", "f_liberation", "f_dejavu", "f_mono", "f_caladea"};
+    private static final int[] fontState = new int[FONT_KEYS.length]; // 0 bilinmiyor, 1 var, 2 yok
+
+    private static int sel() {
+        int i = Mods.g("fontsel").value;
+        return i < 0 || i >= FONT_KEYS.length ? 0 : i;
+    }
+
+    private static String fid(int i, boolean bold) {
+        String k = i == 0 ? "gdf" : FONT_KEYS[i];
+        return "hudmod:" + k + (bold ? (i == 0 ? "bold" : "_b") : "");
+    }
 
     /** Özel font kullanılabilir ve açık mı? */
     static boolean on() {
         if (!Mods.g("font").on()) return false;
-        if (fontState == 0) {
+        int i = sel();
+        if (fontState[i] == 0) {
             try {
                 var rm = MinecraftClient.getInstance().getResourceManager();
-                boolean ok = rm.getResource(Identifier.of("hudmod", "font/gdf.ttf")).isPresent()
-                        && rm.getResource(Identifier.of("hudmod", "font/gdf.json")).isPresent();
-                fontState = ok ? 1 : 2;
+                String k = i == 0 ? "gdf" : FONT_KEYS[i];
+                boolean ok = rm.getResource(Identifier.of("hudmod", "font/" + k + ".ttf")).isPresent()
+                        && rm.getResource(Identifier.of("hudmod", "font/" + k + ".json")).isPresent();
+                fontState[i] = ok ? 1 : 2;
             } catch (Exception e) {
-                fontState = 2;
+                fontState[i] = 2;
             }
         }
-        return fontState == 1;
+        return fontState[i] == 1;
     }
 
     private static Text t(String s, boolean bold) {
-        String id = bold ? "hudmod:gdfbold" : "hudmod:gdf";
+        String id = fid(sel(), bold);
         String k = id + "|" + s;
         Text r = CACHE.get(k);
         if (r == null) {

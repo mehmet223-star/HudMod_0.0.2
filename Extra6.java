@@ -102,6 +102,7 @@ final class Extra6 {
     static void overlay(DrawContext c, MinecraftClient mc, int sw, int sh) {
         if (hitm != null && hitm.active) hitm.render(c, sw, sh);
         if (vign != null && vign.active) vign.render(c, mc, sw, sh);
+        Extra7.overlay(c, mc, sw, sh);
     }
 
     // ================= Hit Marker =================
