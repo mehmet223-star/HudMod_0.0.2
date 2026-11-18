@@ -3,7 +3,6 @@ package com.example.hudmod;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.option.ParticlesMode;
 import net.minecraft.client.option.SimpleOption;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -229,7 +228,7 @@ final class Extra6 {
     // ================= Grafik Hafifletici =================
     static final class GfxMod extends Mod {
         private final Setting sPart, sShadow;
-        private ParticlesMode oPart = ParticlesMode.ALL;
+        private Object oPart;
         private boolean oShadow = true;
 
         GfxMod(boolean en) {
@@ -240,19 +239,34 @@ final class Extra6 {
             add(sShadow);
         }
 
+        /** Parçacık seçeneğinin enum sınıfının adı sürümler arasında değiştiği için sabit adla çalışma anında bulunur. */
+        private static Object pick(Object sample, String name) {
+            for (Object c : ((Enum<?>) sample).getDeclaringClass().getEnumConstants()) {
+                if (((Enum<?>) c).name().equals(name)) return c;
+            }
+            return sample;
+        }
+
+        @SuppressWarnings("unchecked")
+        private static void setP(MinecraftClient mc, Object v) {
+            ((SimpleOption<Object>) (SimpleOption<?>) mc.options.getParticles()).setValue(v);
+        }
+
         @Override
         public void onEnable(MinecraftClient mc) {
             var o = mc.options;
-            ParticlesMode cur = o.getParticles().getValue();
-            oPart = (sPart.value > 0 && cur != ParticlesMode.ALL) ? ParticlesMode.ALL : cur;
+            Object cur = o.getParticles().getValue();
+            boolean isAll = ((Enum<?>) cur).name().equals("ALL");
+            oPart = (sPart.value > 0 && !isAll) ? pick(cur, "ALL") : cur;
             oShadow = sShadow.on() || o.getEntityShadows().getValue();
         }
 
         @Override
         public void onTick(MinecraftClient mc) {
             var o = mc.options;
-            ParticlesMode want = sPart.value == 1 ? ParticlesMode.DECREASED : sPart.value == 2 ? ParticlesMode.MINIMAL : oPart;
-            if (o.getParticles().getValue() != want) o.getParticles().setValue(want);
+            Object cur = o.getParticles().getValue();
+            Object want = sPart.value == 1 ? pick(cur, "DECREASED") : sPart.value == 2 ? pick(cur, "MINIMAL") : (oPart != null ? oPart : cur);
+            if (cur != want) setP(mc, want);
             boolean sh = sShadow.on() ? false : oShadow;
             if (o.getEntityShadows().getValue() != sh) o.getEntityShadows().setValue(sh);
         }
@@ -260,7 +274,7 @@ final class Extra6 {
         @Override
         public void onDisable(MinecraftClient mc) {
             var o = mc.options;
-            if (o.getParticles().getValue() != oPart) o.getParticles().setValue(oPart);
+            if (oPart != null && o.getParticles().getValue() != oPart) setP(mc, oPart);
             if (o.getEntityShadows().getValue() != oShadow) o.getEntityShadows().setValue(oShadow);
         }
     }
