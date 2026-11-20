@@ -34,6 +34,18 @@ public final class ModHooks {
         return t.angle();
     }
 
+    /** FPS Boost: patlama parçacıklarını (kristal, anchor, TNT) çizmeden atar. */
+    public static volatile boolean dropExplosions;
+
+    public static boolean dropParticle(net.minecraft.particle.ParticleEffect e) {
+        if (!dropExplosions || e == null) return false;
+        var t = e.getType();
+        return t == net.minecraft.particle.ParticleTypes.EXPLOSION
+                || t == net.minecraft.particle.ParticleTypes.EXPLOSION_EMITTER
+                || t == net.minecraft.particle.ParticleTypes.POOF
+                || t == net.minecraft.particle.ParticleTypes.LARGE_SMOKE;
+    }
+
     /** Skin Değiştirici: sadece yerel oyuncunun skin dokusunu değiştirir. */
     public static Object skin(Object self, Object orig) {
         return Extra4.override(self, orig);

@@ -87,10 +87,12 @@ public class HudMod implements ClientModInitializer {
             if (!sb.sShow.on()) return;
             var mc = MinecraftClient.getInstance();
             int sw = mc.getWindow().getScaledWidth(), sh = mc.getWindow().getScaledHeight();
-            float s = sb.sScale.value / 100f;
+            float s = sb.scale();
+            int dx = sb.px(sw) - (sw - sb.sw());
+            int dy = sb.py(sh) - (sh - sb.sh()) / 2;
             var m = c.getMatrices();
             m.pushMatrix();
-            m.translate(sw + sb.sDx.value, sh / 2f + sb.sDy.value);
+            m.translate(sw + dx, sh / 2f + dy);
             m.scale(s, s);
             m.translate(-sw, -sh / 2f);
             orig.render(c, tc);

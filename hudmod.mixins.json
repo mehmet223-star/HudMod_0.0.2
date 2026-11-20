@@ -8,7 +8,8 @@
     "LivingEntityMixin",
     "EntityMixin",
     "WorldMixin",
-    "PlayerSkinMixin"
+    "PlayerSkinMixin",
+    "ParticleManagerMixin"
   ],
   "injectors": {
     "defaultRequire": 0

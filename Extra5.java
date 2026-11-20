@@ -61,18 +61,6 @@ final class Extra5 {
                 new Setting[]{Setting.bool("sec", "Saniyeyi her zaman göster", true)},
                 1, 0, 4, 60);
 
-        add("xp", "XP Seviyesi", Items.EXPERIENCE_BOTTLE, "Seviyen ve bir sonraki seviyeye ilerleme.", 5,
-                (mc, t) -> {
-                    var p = mc.player;
-                    if (p == null) { t.set(t.fmt("XP", "-")); return; }
-                    t.autoColor = 0xFF7CFC4A;
-                    String s = "Sv " + p.experienceLevel;
-                    if (t.s("pct").on()) s += "  %" + Math.round(p.experienceProgress * 100f);
-                    t.set(t.fmt("XP", s));
-                },
-                new Setting[]{Setting.bool("pct", "İlerleme yüzdesi", true)},
-                0, 0, 4, 260);
-
         add("hp", "Can", Items.APPLE, "Canını sayı olarak gösterir. Renk canına göre değişir.", 3,
                 (mc, t) -> {
                     var p = mc.player;
@@ -86,17 +74,6 @@ final class Extra5 {
                 },
                 new Setting[]{Setting.bool("abs", "Altın kalpleri (emilim) göster", true)},
                 0, 0, 4, 274);
-
-        add("hits", "Vuruş Sayacı", Items.IRON_SWORD, "Oturum boyunca vurduğun toplam vuruş sayısı.", 3,
-                (mc, t) -> {
-                    if (mc.world != lastWorld) {
-                        lastWorld = mc.world;
-                        if (t.s("reset").on()) hits = 0;
-                    }
-                    t.set(t.fmt("Vuruş", String.valueOf(hits)));
-                },
-                new Setting[]{Setting.bool("reset", "Dünya değişince sıfırla", true)},
-                1, 0, 4, 74);
 
         add("lookblock", "Baktığın Blok", Items.GRASS_BLOCK, "Nişangahın gösterdiği bloğun adı ve uzaklığı.", 4,
                 (mc, t) -> {
@@ -112,43 +89,6 @@ final class Extra5 {
                 },
                 new Setting[]{Setting.bool("dist", "Mesafe göster", true)},
                 1, 1, 0, 20);
-
-        add("invfull", "Envanter Doluluğu", Items.BARREL, "Dolu slot sayısı. Neredeyse doluyken sarı, doluyken kırmızı olur.", 10,
-                (mc, t) -> {
-                    var p = mc.player;
-                    if (p == null) { t.set(t.fmt("Envanter", "-")); return; }
-                    var inv = p.getInventory();
-                    int used = 0, total = Math.min(36, inv.size());
-                    for (int i = 0; i < total; i++) if (!inv.getStack(i).isEmpty()) used++;
-                    t.autoColor = used >= total ? 0xFFFF5555 : used >= total - 4 ? 0xFFFFFF55 : 0xFF55FF55;
-                    String s = used + "/" + total;
-                    if (t.s("pct").on()) s += "  %" + Math.round(used * 100f / Math.max(1, total));
-                    t.set(t.fmt("Envanter", s));
-                },
-                new Setting[]{Setting.bool("pct", "Yüzde göster", false)},
-                1, 2, 4, 40);
-
-        add("travel", "Katedilen Mesafe", Items.LEATHER_BOOTS, "Yürüdüğün yatay mesafe (ışınlanma sayılmaz). Ayardan sıfırlanır.", 1,
-                (mc, t) -> {
-                    var p = mc.player;
-                    if (t.s("reset").on()) {
-                        t.s("reset").value = 0;
-                        dist = 0;
-                    }
-                    if (p == null) { hasLast = false; t.set(t.fmt("Mesafe", "-")); return; }
-                    if (hasLast) {
-                        double dx = p.getX() - lastX, dz = p.getZ() - lastZ;
-                        double d = Math.sqrt(dx * dx + dz * dz);
-                        if (d < 8.0) dist += d;
-                    }
-                    lastX = p.getX();
-                    lastZ = p.getZ();
-                    hasLast = true;
-                    String s = dist >= 1000 ? Mods.f(dist / 1000.0, 2) + " km" : Math.round(dist) + " m";
-                    t.set(t.fmt("Mesafe", s));
-                },
-                new Setting[]{Setting.bool("reset", "Şimdi sıfırla", false)},
-                0, 2, 4, 40);
 
         add("status", "Durum", Items.FEATHER, "Koşma, çömelme, uçma ve yüzme durumunu gösterir.", 2,
                 (mc, t) -> {

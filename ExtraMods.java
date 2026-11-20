@@ -113,21 +113,7 @@ final class ExtraMods {
             t.set(t.fmt("Saat", LocalTime.now().format(DateTimeFormatter.ofPattern(pat))));
         }, Setting.bool("sec", "Saniye göster", false)).at(0, 0, 4, 130), false);
 
-        Mods.add(Mods.t("itemdur", "Eşya Dayanıklılığı", Mod.Cat.HUD, Items.ANVIL, false, 5, (mc, t) -> {
-            var p = mc.player;
-            String s = "-";
-            t.autoColor = 0xFFFFFFFF;
-            if (p != null) {
-                ItemStack st = p.getMainHandStack();
-                if (!st.isEmpty() && st.isDamageable()) {
-                    int left = st.getMaxDamage() - st.getDamage();
-                    int pct = (int) Math.round(left * 100.0 / st.getMaxDamage());
-                    t.autoColor = Mods.hi(pct, 60, 30, 15);
-                    s = left + "/" + st.getMaxDamage() + " (" + pct + "%)";
-                }
-            }
-            t.set(t.fmt("Eşya", s));
-        }).at(0, 0, 4, 148), true);
+        Mods.add(new Extra8.DurMod(false).at(0, 0, 4, 148), false);
 
         Mods.add(new PotionMod(false).at(2, 0, 4, 80), false);
 
@@ -140,28 +126,7 @@ final class ExtraMods {
             t.set(t.fmt("Reach", Mods.f(lastReach, 2)));
         }).at(2, 1, 6, 22), true);
 
-        Mods.add(new PopMod(false).at(2, 1, 6, 40), false);
-
-        Mods.add(Mods.t("mace", "Mace Smash", Mod.Cat.PVP, Items.MACE, false, 2, (mc, t) -> {
-            var p = mc.player;
-            double fd = 0;
-            boolean holding = false;
-            int wind = 0;
-            if (p != null) {
-                fd = p.fallDistance;
-                holding = p.getMainHandStack().isOf(Items.MACE);
-                wind = Mods.count(p, Items.WIND_CHARGE);
-            }
-            double bonus = Math.min(fd, 3) * 4 + Math.max(0, Math.min(fd, 8) - 3) * 2 + Math.max(0, fd - 8);
-            t.autoColor = fd >= 8 ? 0xFF55FF55 : fd >= 3 ? 0xFFFFFF55 : fd >= 1.5 ? 0xFFFFAA00 : 0xFFFFFFFF;
-            List<String> l = new ArrayList<>();
-            l.add(t.fmt("Düşüş", Mods.f(fd, 1) + " b"));
-            if (t.s("dmg").on()) l.add(t.fmt("Tahmini hasar", Mods.f(6 + bonus, 1)));
-            if (t.s("wind").on()) l.add(t.fmt("Rüzgar", String.valueOf(wind)));
-            if (t.s("hold").on()) l.add(holding ? "Mace elde" : "Mace yok");
-            t.set(l.toArray(new String[0]));
-        }, Setting.bool("dmg", "Tahmini smash hasarı", true), Setting.bool("wind", "Rüzgar yükü sayısı", true),
-                Setting.bool("hold", "Mace durumunu göster", true)).at(1, 1, 0, 24), false);
+        Mods.add(new Extra8.PopMod(false).at(2, 1, 6, 40), false);
 
         Mods.add(new StatsMod(false).at(2, 1, 6, 66), false);
         Mods.add(new GraphMod(false).at(0, 0, 4, 168), true);
@@ -179,7 +144,7 @@ final class ExtraMods {
         sneak = new SneakMod(false);
         Mods.add(sneak.at(0, 0, 0, 0), false);
         scoreboard = new ScoreboardMod(false);
-        Mods.add(scoreboard.at(0, 0, 0, 0), false);
+        Mods.add(scoreboard.at(2, 1, 0, 0), false);
         Mods.add(new BoostMod(false).at(0, 0, 0, 0), false);
     }
 
@@ -279,16 +244,41 @@ final class ExtraMods {
     }
 
     // ================= Scoreboard =================
+    /** Vanilla skor tablosunu taşır. HUD editöründe yer tutucu kutu sürüklenir; varsayılan konum sağ-orta. */
     static final class ScoreboardMod extends Mod {
-        final Setting sShow, sScale, sDx, sDy;
+        final Setting sShow;
 
         ScoreboardMod(boolean en) {
-            super("scoreboard", "Scoreboard", Cat.HUD, Items.OAK_SIGN, false, en);
+            super("scoreboard", "Scoreboard", Cat.HUD, Items.OAK_SIGN, true, en);
             sShow = Setting.bool("show", "Göster", true);
-            sScale = Setting.num("scale", "Boyut", 50, 150, 10, 100, "%");
-            sDx = Setting.num("dx", "Yatay kaydır", -150, 150, 5, 0, " px");
-            sDy = Setting.num("dy", "Dikey kaydır", -150, 150, 5, 0, " px");
-            add(sShow); add(sScale); add(sDx); add(sDy);
+            add(sShow);
+            cw = 92;
+            ch = 70;
+        }
+
+        /** Sadece boyut ayarı eklenir; arkaplan/yazı ayarları bu modülde anlamsız. */
+        @Override
+        public void finish() {
+            settings.add(Setting.num("scale", "Boyut", 50, 150, 10, 100, "%"));
+            sScale = s("scale");
+        }
+
+        @Override
+        public float scale() { return sScale.value / 100f; }
+
+        /** Normal oyunda bir şey çizmez; sadece editörde yer tutucu gösterir. */
+        @Override
+        public void render(DrawContext c, TextRenderer tr, int x, int y, boolean editor) {
+            if (!editor) return;
+            var m = c.getMatrices();
+            m.pushMatrix();
+            m.translate(x, y);
+            float s = scale();
+            m.scale(s, s);
+            Gfx.rrect(c, 0, 0, cw + 8, ch + 8, 0xB00C0C14, true);
+            Ui.text(c, tr, "Skor tablosu", 6, 6, 0xFFFFFFFF, false);
+            for (int i = 0; i < 5; i++) c.fill(6, 20 + i * 10, cw + 2 - (i % 2) * 20, 26 + i * 10, 0x33FFFFFF);
+            m.popMatrix();
         }
     }
 
@@ -345,30 +335,6 @@ final class ExtraMods {
         }
     }
 
-    // ================= Totem pop sayacı =================
-    /** Totem patlayınca verilen Absorption II efektini yakalayarak sayar (altın elmalar farklı seviyede). */
-    static final class PopMod extends TextMod {
-        private boolean had;
-
-        PopMod(boolean en) {
-            super("totempop", "Totem Pop", Cat.PVP, Items.TOTEM_OF_UNDYING, en, 4,
-                    (mc, t) -> t.set(t.fmt("Totem pop", String.valueOf(pops))));
-        }
-
-        @Override
-        public void onEnable(MinecraftClient mc) { pops = 0; }
-
-        @Override
-        public void onTick(MinecraftClient mc) {
-            var p = mc.player;
-            if (p == null) return;
-            StatusEffectInstance a = p.getStatusEffect(StatusEffects.ABSORPTION);
-            boolean has = a != null && a.getAmplifier() == 1 && a.getDuration() > 60;
-            if (has && !had) pops++;
-            had = has;
-        }
-    }
-
     // ================= Snaplook =================
     static final class SnapMod extends Mod {
         private final Setting sView;
@@ -408,48 +374,59 @@ final class ExtraMods {
     }
 
     // ================= Uyarılar =================
+    /** Her uyarı olay başına bir kez, kısa süre gösterilir; sürekli tekrar etmez. */
     static final class AlertsMod extends Mod {
         private static final String[] PN = {"Kask", "Göğüslük", "Pantolon", "Bot"};
         private static final EquipmentSlot[] SL = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
         private final Setting sLow, sHp, sVig, sSnd, sTotem, sArmor, sArmorPct;
-        private boolean lowNow;
         private String msg = "";
         private int msgCol = 0xFFFFFFFF, lastTotems = -1;
-        private long msgUntil, lastSnd;
+        private long msgStart, msgUntil, lastAlert;
+        private boolean lowArmed = true;
         private final boolean[] armLow = new boolean[4];
 
         AlertsMod(boolean en) {
             super("alerts", "Uyarılar", Cat.PVP, Items.BELL, false, en);
             sLow = Setting.bool("low", "Düşük can uyarısı", true);
-            sHp = Setting.num("hp", "Can eşiği", 1, 10, 1, 4, " kalp");
-            sVig = Setting.bool("vig", "Kırmızı ekran kenarı", true);
-            sSnd = Setting.bool("snd", "Uyarı sesi", true);
+            sHp = Setting.num("hp", "Can eşiği", 1, 10, 1, 3, " kalp");
+            sVig = Setting.bool("vig", "Uyarıda ekran kenarını kızart", false);
+            sSnd = Setting.bool("snd", "Uyarı sesi", false);
             sTotem = Setting.bool("totem", "Totem bitti uyarısı", true);
             sArmor = Setting.bool("armor", "Zırh dayanıklılık uyarısı", true);
-            sArmorPct = Setting.num("armorPct", "Zırh eşiği", 5, 50, 5, 20, "%");
+            sArmorPct = Setting.num("armorPct", "Zırh eşiği", 5, 50, 5, 15, "%");
             add(sLow); add(sHp); add(sVig); add(sSnd); add(sTotem); add(sArmor); add(sArmorPct);
         }
 
-        private void alert(MinecraftClient mc, String text, int col, long ms) {
+        /** Uyarıyı gösterir. Çok yakın zamanda başka uyarı verildiyse false döner (tekrar denenir). */
+        private boolean alert(MinecraftClient mc, String text, int col, long ms) {
+            long now = System.currentTimeMillis();
+            if (now - lastAlert < 1500) return false;
+            lastAlert = now;
             msg = text;
             msgCol = col;
-            msgUntil = System.currentTimeMillis() + ms;
-            if (sSnd.on()) mc.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.ENTITY_VILLAGER_NO, 1.0f));
+            msgStart = now;
+            msgUntil = now + ms;
+            if (sSnd.on()) mc.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.BLOCK_NOTE_BLOCK_PLING.value(), 1.2f));
+            return true;
         }
 
         @Override
         public void onTick(MinecraftClient mc) {
             var p = mc.player;
-            if (p == null) { lowNow = false; return; }
-            long now = System.currentTimeMillis();
-            lowNow = sLow.on() && !p.isDead() && p.getHealth() <= sHp.value * 2f;
-            if (lowNow && sSnd.on() && now - lastSnd > 1500) {
-                mc.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.ENTITY_ARROW_HIT_PLAYER, 0.6f));
-                lastSnd = now;
+            if (p == null) { lowArmed = true; return; }
+            float lim = sHp.value * 2f;
+            if (sLow.on() && !p.isDead()) {
+                if (p.getHealth() <= lim) {
+                    if (lowArmed && alert(mc, "DÜŞÜK CAN", 0xFFFF5555, 2000)) lowArmed = false;
+                } else if (p.getHealth() > lim + 4f) {
+                    lowArmed = true;
+                }
+            } else if (p.isDead()) {
+                lowArmed = true;
             }
             if (sTotem.on()) {
                 int n = Mods.count(p, Items.TOTEM_OF_UNDYING);
-                if (lastTotems > 0 && n == 0) alert(mc, "TOTEM BİTTİ!", 0xFFFFD34D, 3000);
+                if (lastTotems > 0 && n == 0) alert(mc, "TOTEM BİTTİ", 0xFFFFD34D, 2000);
                 lastTotems = n;
             }
             if (sArmor.on()) {
@@ -458,10 +435,7 @@ final class ExtraMods {
                     if (s.isEmpty() || !s.isDamageable()) { armLow[i] = false; continue; }
                     int pct = (int) Math.round((s.getMaxDamage() - s.getDamage()) * 100.0 / s.getMaxDamage());
                     if (pct <= sArmorPct.value) {
-                        if (!armLow[i]) {
-                            armLow[i] = true;
-                            alert(mc, "ZIRH DÜŞÜK: " + PN[i] + " %" + pct, 0xFFFF8A3D, 3000);
-                        }
+                        if (!armLow[i] && alert(mc, "ZIRH DÜŞÜK: " + PN[i] + " %" + pct, 0xFFFF8A3D, 2000)) armLow[i] = true;
                     } else if (pct > sArmorPct.value + 10) {
                         armLow[i] = false;
                     }
@@ -471,11 +445,15 @@ final class ExtraMods {
 
         void render(DrawContext c, TextRenderer tr, int sw, int sh) {
             long now = System.currentTimeMillis();
-            float pulse = 0.5f + 0.5f * (float) Math.sin(now / 170.0);
-            if (lowNow && sVig.on()) {
-                for (int i = 0; i < 8; i++) {
-                    int a = Math.min(200, (int) ((8 - i) * (6 + 9 * pulse)));
-                    int col = (a << 24) | 0xE01010;
+            if (msgUntil <= now) return;
+            float in = Math.min(1f, (now - msgStart) / 150f);
+            float out = Math.min(1f, (msgUntil - now) / 500f);
+            float a = Math.min(in, out);
+            if (a <= 0.05f) return;
+            if (sVig.on()) {
+                for (int i = 0; i < 6; i++) {
+                    int al = Math.min(160, (int) ((6 - i) * 10 * a));
+                    int col = (al << 24) | 0xE01010;
                     int o = i * 4;
                     c.fill(o, o, sw - o, o + 4, col);
                     c.fill(o, sh - o - 4, sw - o, sh - o, col);
@@ -483,46 +461,34 @@ final class ExtraMods {
                     c.fill(sw - o - 4, o + 4, sw - o, sh - o - 4, col);
                 }
             }
-            String text = null;
-            int col = 0xFFFF5555;
-            float a = 1f;
-            if (msgUntil > now) {
-                text = msg;
-                col = msgCol;
-                a = Math.min(1f, (msgUntil - now) / 400f);
-            } else if (lowNow) {
-                text = "DÜŞÜK CAN!";
-                a = 0.6f + 0.4f * pulse;
-            }
-            if (text != null && a > 0.05f) {
-                var m = c.getMatrices();
-                m.pushMatrix();
-                m.translate(sw / 2f, sh / 4f);
-                m.scale(1.5f, 1.5f);
-                Ui.spacedCenter(c, tr, text, 0, 0, (Math.round(255 * a) << 24) | (col & 0xFFFFFF), true);
-                m.popMatrix();
-            }
+            Ui.spacedCenter(c, tr, msg, sw / 2, sh / 4, (Math.round(255 * a) << 24) | (msgCol & 0xFFFFFF), true);
         }
     }
 
     // ================= Crosshair =================
     static final class CrossMod extends Mod {
-        private final Setting sShape, sSize, sGap, sThick, cCol, sOl;
+        private final Setting sShape, sSize, sGap, sThick, cCol, sOl, sTgt;
 
         CrossMod(boolean en) {
             super("crosshair", "Crosshair", Cat.HUD, Items.SPECTRAL_ARROW, false, en);
-            sShape = Setting.choice("shape", "Şekil", 0, "Artı", "Nokta", "Kare", "Çarpı", "Daire");
+            sShape = Setting.choice("shape", "Şekil", 0, "Artı", "Nokta", "Kare", "Çarpı", "Daire",
+                    "Artı + Nokta", "T Şekli", "Elmas", "Köşeler", "Hedef", "Ok (^)", "Yatay Çizgi", "Yıldız");
             sSize = Setting.num("size", "Boyut", 1, 20, 1, 5, " px");
             sGap = Setting.num("gap", "Boşluk", 0, 12, 1, 2, " px");
             sThick = Setting.num("thick", "Kalınlık", 1, 4, 1, 1, " px");
             cCol = Setting.color("col", "Renk", 0);
             sOl = Setting.bool("ol", "Siyah kenar", true);
-            add(sShape); add(sSize); add(sGap); add(sThick); add(cCol); add(sOl);
+            sTgt = Setting.bool("tgt", "Oyuncuya bakınca kırmızı yap", false);
+            add(sShape); add(sSize); add(sGap); add(sThick); add(cCol); add(sOl); add(sTgt);
         }
 
         void draw(DrawContext c, int sw, int sh) {
             int cx = sw / 2, cy = sh / 2, s = sSize.value, g = sGap.value, t = sThick.value;
             int col = Mods.colorOf(cCol.value, 0xFFFFFFFF);
+            if (sTgt.on()) {
+                var ct = MinecraftClient.getInstance().crosshairTarget;
+                if (ct != null && ct.getType() == net.minecraft.util.hit.HitResult.Type.ENTITY) col = 0xFFFF5555;
+            }
             int off = t / 2;
             List<int[]> r = new ArrayList<>();
             switch (sShape.value) {
@@ -552,17 +518,71 @@ final class ExtraMods {
                         r.add(new int[]{cx - d - t, cy - d - t, cx - d, cy - d});
                     }
                 }
-                default -> {
+                case 4 -> ring(r, cx, cy, g + s, t);
+                case 5 -> { plus(r, cx, cy, off, t, g, s, true, true); dot(r, cx, cy, t); }
+                case 6 -> plus(r, cx, cy, off, t, g, s, false, true);
+                case 7 -> {
                     int rad = g + s;
-                    for (int i = 0; i < 28; i++) {
-                        double an = i * Math.PI * 2 / 28;
-                        int x = cx + (int) Math.round(Math.cos(an) * rad), y = cy + (int) Math.round(Math.sin(an) * rad);
-                        r.add(new int[]{x, y, x + t, y + t});
+                    for (int i = -rad; i <= rad; i++) {
+                        int dy = rad - Math.abs(i);
+                        r.add(new int[]{cx + i, cy + dy, cx + i + t, cy + dy + t});
+                        if (dy != 0) r.add(new int[]{cx + i, cy - dy, cx + i + t, cy - dy + t});
+                    }
+                }
+                case 8 -> {
+                    int h = g + s;
+                    for (int sx = -1; sx <= 1; sx += 2) {
+                        for (int sy = -1; sy <= 1; sy += 2) {
+                            int px = cx + sx * h, py = cy + sy * h;
+                            int hx = px - sx * s, vy = py - sy * s;
+                            r.add(new int[]{Math.min(px, hx), py, Math.max(px, hx) + t, py + t});
+                            r.add(new int[]{px, Math.min(py, vy), px + t, Math.max(py, vy) + t});
+                        }
+                    }
+                }
+                case 9 -> { ring(r, cx, cy, g + s, t); dot(r, cx, cy, t); }
+                case 10 -> {
+                    int y0 = cy - s / 2;
+                    for (int i = 0; i <= s; i++) {
+                        r.add(new int[]{cx - i, y0 + i, cx - i + t, y0 + i + t});
+                        if (i != 0) r.add(new int[]{cx + i, y0 + i, cx + i + t, y0 + i + t});
+                    }
+                }
+                case 11 -> plus(r, cx, cy, off, t, g, s, true, false);
+                default -> {
+                    plus(r, cx, cy, off, t, g, s, true, true);
+                    for (int i = 0; i < Math.max(2, s / 2); i++) {
+                        int d = g + i;
+                        r.add(new int[]{cx + d, cy + d, cx + d + t, cy + d + t});
+                        r.add(new int[]{cx - d - t, cy + d, cx - d, cy + d + t});
+                        r.add(new int[]{cx + d, cy - d - t, cx + d + t, cy - d});
+                        r.add(new int[]{cx - d - t, cy - d - t, cx - d, cy - d});
                     }
                 }
             }
             if (sOl.on()) for (int[] q : r) c.fill(q[0] - 1, q[1] - 1, q[2] + 1, q[3] + 1, 0xFF000000);
             for (int[] q : r) c.fill(q[0], q[1], q[2], q[3], col);
+        }
+
+        private static void ring(List<int[]> r, int cx, int cy, int rad, int t) {
+            for (int i = 0; i < 28; i++) {
+                double an = i * Math.PI * 2 / 28;
+                int x = cx + (int) Math.round(Math.cos(an) * rad), y = cy + (int) Math.round(Math.sin(an) * rad);
+                r.add(new int[]{x, y, x + t, y + t});
+            }
+        }
+
+        private static void dot(List<int[]> r, int cx, int cy, int t) {
+            int d = Math.max(1, t);
+            r.add(new int[]{cx - d / 2, cy - d / 2, cx - d / 2 + d, cy - d / 2 + d});
+        }
+
+        /** Artı kolları: yatay ve/veya dikey; dikeyde üst kol istenmezse T şekli olur. */
+        private static void plus(List<int[]> r, int cx, int cy, int off, int t, int g, int s, boolean up, boolean down) {
+            r.add(new int[]{cx - off - g - s, cy - off, cx - off - g, cy - off + t});
+            r.add(new int[]{cx - off + t + g, cy - off, cx - off + t + g + s, cy - off + t});
+            if (up && down) r.add(new int[]{cx - off, cy - off - g - s, cx - off + t, cy - off - g});
+            if (down) r.add(new int[]{cx - off, cy - off + t + g, cx - off + t, cy - off + t + g + s});
         }
     }
 
@@ -663,7 +683,7 @@ final class ExtraMods {
 
     // ================= FPS Boost =================
     static final class BoostMod extends Mod {
-        private final Setting sPart, sEnt, sBob, sShadow, sBlend, sView;
+        private final Setting sPart, sEnt, sBob, sShadow, sBlend, sView, sExp;
         // Orijinaller sadece bu oturumda tutulur; boost açıkken oyunu kapatırsanız
         // options.txt'ye düşük değerler yazılmış olabilir.
         private String oPart;
@@ -673,13 +693,14 @@ final class ExtraMods {
 
         BoostMod(boolean en) {
             super("boost", "FPS Boost", Cat.UTIL, Items.FIREWORK_ROCKET, false, en);
+            sExp = Setting.bool("exp", "Patlama efektlerini gizle (kristal, anchor, TNT)", true);
             sPart = Setting.bool("part", "Partikülleri minimuma indir", true);
             sEnt = Setting.choice("ent", "Varlık çizim mesafesi", 2, "100%", "75%", "50%");
             sBob = Setting.bool("bob", "Yürürken sallanmayı kapat", true);
             sShadow = Setting.bool("shadow", "Varlık gölgelerini kapat", true);
             sBlend = Setting.bool("blend", "Biyom geçiş yumuşatmasını kapat", true);
             sView = Setting.choice("view", "Görüş mesafesi sınırı", 0, "Kapalı", "8 chunk", "10 chunk", "12 chunk");
-            add(sPart); add(sEnt); add(sBob); add(sShadow); add(sBlend); add(sView);
+            add(sExp); add(sPart); add(sEnt); add(sBob); add(sShadow); add(sBlend); add(sView);
         }
 
         private static void setParticles(GameOptions o, String name) {
@@ -703,6 +724,7 @@ final class ExtraMods {
 
         @Override
         public void onTick(MinecraftClient mc) {
+            ModHooks.dropExplosions = sExp.on();
             if (HudMod.tick % 40 == 0) apply(mc);
         }
 
@@ -721,6 +743,7 @@ final class ExtraMods {
 
         @Override
         public void onDisable(MinecraftClient mc) {
+            ModHooks.dropExplosions = false;
             GameOptions o = mc.options;
             if (oPart != null) setParticles(o, oPart);
             if (oEnt != null) o.getEntityDistanceScaling().setValue(oEnt);

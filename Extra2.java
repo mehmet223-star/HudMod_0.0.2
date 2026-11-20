@@ -44,7 +44,7 @@ final class Extra2 {
     // ================= Hitbox =================
     /** Yakındaki canlıların hitbox'ını ekrana tel kafes olarak çizer (sadece birinci şahıs görünümde). */
     static final class HitboxMod extends Mod {
-        private final Setting sPl, sDist, sMax, sCol, sTh, sWall;
+        private final Setting sPl, sDist, sMax, sCol, sTh, sWall, sEye, sLook;
         private final java.util.HashMap<Integer, Boolean> vis = new java.util.HashMap<>();
         private long visT;
 
@@ -56,12 +56,16 @@ final class Extra2 {
             sCol = Setting.color("col", "Renk", 1);
             sTh = Setting.num("th", "Çizgi kalınlığı", 1, 3, 1, 1, " px");
             sWall = Setting.bool("wall", "Duvar arkasındakileri de göster", false);
+            sEye = Setting.bool("eye", "Göz hizası çizgisi", false);
+            sLook = Setting.bool("look", "Bakış yönü çizgisi", false);
             add(sPl);
             add(sDist);
             add(sMax);
             add(sCol);
             add(sTh);
             add(sWall);
+            add(sEye);
+            add(sLook);
         }
 
         /** Gözden varlığın üç noktasına (ayak, gövde, göz) engelsiz bir ışın varsa görünür sayılır. */
@@ -113,7 +117,19 @@ final class Extra2 {
                 }
                 n++;
                 var b = e.getBoundingBox();
-                w.box(c, b, ep.x - e.getX(), ep.y - e.getY(), ep.z - e.getZ(), col, sTh.value, false);
+                double ox = ep.x - e.getX(), oy = ep.y - e.getY(), oz = ep.z - e.getZ();
+                w.box(c, b, ox, oy, oz, col, sTh.value, false);
+                if (sEye.on() || sLook.on()) {
+                    double ey = ep.y + e.getEyeHeight(e.getPose());
+                    if (sEye.on()) {
+                        w.box(c, new net.minecraft.util.math.Box(b.minX + ox, ey - 0.005, b.minZ + oz, b.maxX + ox, ey + 0.005, b.maxZ + oz),
+                                0, 0, 0, col, sTh.value, false);
+                    }
+                    if (sLook.on()) {
+                        Vec3d lv = e.getRotationVec(pt);
+                        w.seg(c, ep.x, ey, ep.z, ep.x + lv.x * 2.0, ey + lv.y * 2.0, ep.z + lv.z * 2.0, 0xFF5599FF, sTh.value);
+                    }
+                }
             }
         }
     }

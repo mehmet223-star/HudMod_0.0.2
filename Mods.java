@@ -185,22 +185,7 @@ final class Mods {
             t.set(t.fmt("Hedef", s));
         }).at(2, 1, 6, -30), false);
 
-        add(t("items", "PvP Eşyaları", Mod.Cat.PVP, Items.END_CRYSTAL, false, 10, (mc, t) -> {
-            var p = mc.player;
-            List<String> l = new ArrayList<>();
-            if (p != null) {
-                if (t.s("totem").on()) l.add(t.fmt("Totem", String.valueOf(count(p, Items.TOTEM_OF_UNDYING))));
-                if (t.s("crystal").on()) l.add(t.fmt("Kristal", String.valueOf(count(p, Items.END_CRYSTAL))));
-                if (t.s("obi").on()) l.add(t.fmt("Obsidyen", String.valueOf(count(p, Items.OBSIDIAN))));
-                if (t.s("pearl").on()) l.add(t.fmt("Pearl", String.valueOf(count(p, Items.ENDER_PEARL))));
-                if (t.s("gap").on()) l.add(t.fmt("Altın elma", String.valueOf(count(p, Items.GOLDEN_APPLE))));
-                if (t.s("wind").on()) l.add(t.fmt("Rüzgar", String.valueOf(count(p, Items.WIND_CHARGE))));
-            }
-            if (l.isEmpty()) l.add("-");
-            t.set(l.toArray(new String[0]));
-        }, Setting.bool("totem", "Totem", true), Setting.bool("crystal", "Kristal", true),
-                Setting.bool("obi", "Obsidyen", false), Setting.bool("pearl", "Ender Pearl", true),
-                Setting.bool("gap", "Altın elma", false), Setting.bool("wind", "Rüzgar yükü", false)).at(2, 0, 4, 4), false);
+        add(new Extra8.ItemsMod(false).at(2, 0, 4, 4), false);
 
 
         // ===== UTILITY =====
@@ -218,6 +203,7 @@ final class Mods {
         Extra5.init();
         Extra6.init();
         Extra7.init();
+        Extra8.init();
         describe();
     }
 
@@ -241,43 +227,42 @@ final class Mods {
         d("ping", "Sunucu gecikmesi.");
         d("combo", "Üst üste vurduğun hit sayısı.");
         d("target", "Baktığın canlının adı ve canı.");
-        d("items", "Totem, kristal, pearl gibi eşya sayıları.");
-        d("mace", "Düşüş yüksekliği ve tahmini smash hasarı.");
+        d("items", "Totem, kristal, pearl gibi eşyaları ikon ve sayı olarak gösterir. Eşya boyutu ayarlanabilir.");
         d("sprint", "W'ye basınca otomatik koşar.");
-        d("boost", "Partikül, gölge ve mesafeyi düşürüp FPS kazandırır.");
+        d("boost", "FPS düşüren ayarları kısar: parçacık, gölge, görüş mesafesi ve patlama efektleri (anchor / kristal patlayınca FPS düşmesini azaltır).");
         d("fullbright", "Karanlıkta bile her yer aydınlık.");
-        d("zoom", "Tuşa basılı tutunca yakınlaştırır (C).");
+        d("zoom", "Tuşa basılı tutunca yakınlaştırır. Tuş Kontroller menüsünden değiştirilebilir (varsayılan C).");
         d("slowswing", "Kol sallama animasyonunu yavaşlatır.");
         d("speed", "Hareket hızın (blok/saniye).");
         d("ram", "Kullanılan bellek.");
         d("clock", "Gerçek saat.");
-        d("itemdur", "Eldeki eşyanın dayanıklılığı.");
+        d("itemdur", "Elindeki eşyanın dayanıklılığını ikon, bar ve yüzdeyle gösterir.");
         d("potions", "Aktif iksir etkileri ve kalan süreler.");
         d("damage", "Son ve toplam verdiğin hasar.");
         d("reach", "Son vuruşunun mesafesi.");
-        d("totempop", "Kaç totem patlattığını sayar.");
-        d("alerts", "Düşük can, zırh ve totem uyarıları.");
+        d("totempop", "Patlayan totem sayısını totem ikonuyla gösterir.");
+        d("alerts", "Düşük can, zırh ve totem uyarıları. Her uyarı olay başına bir kez, kısa süre gösterilir.");
         d("crosshair", "Özel nişangah: şekil, renk, boyut.");
-        d("waypoints", "Ekranda yön ve mesafe gösteren noktalar. B ile ekle.");
-        d("snaplook", "Tuşa basılı tutunca arkana bakarsın (Sol Alt).");
+        d("waypoints", "Ekranda yön ve mesafe gösteren noktalar. Ekleme tuşu Kontroller menüsünden değiştirilebilir (varsayılan B).");
+        d("snaplook", "Tuşa basılı tutunca arkana bakarsın. Tuşu Kontroller menüsünden istediğin gibi değiştirebilirsin.");
         d("stats", "Oturumdaki kill, ölüm ve K/D oranı.");
         d("fpsgraph", "FPS grafiği: kare sürelerini renkli çubuklarla gösterir.");
         d("togglesneak", "Eğilme tuşu aç/kapa olur, basılı tutmak gerekmez.");
         d("lowfire", "Yanarken ekranı kaplayan ateş görüntüsünü gizler.");
-        d("hitbox", "Yakındaki oyuncuların hitbox'ını tel kafes olarak çizer. Duvar arkasındakiler gizlenir.");
+        d("hitbox", "Yakındaki oyuncuların hitbox'ını tel kafes olarak çizer. Duvar arkasındakiler gizlenir; göz hizası ve bakış çizgisi eklenebilir.");
         d("minimap", "Üstten bakan hafif harita; oyuncular ve waypointler görünür.");
         d("skinlayers", "Skin katmanlarını (ceket, kol, bacak, şapka, pelerin) ayarlar.");
         d("timechanger", "Sadece sende gündüz/gece saatini sabitler veya hızlı döndürür.");
         d("weather", "Sadece sende havayı açık, yağmurlu veya fırtınalı yapar.");
         d("cooldown", "Pearl, rüzgar yükü, chorus ve kalkan bekleme süreleri.");
-        d("stopwatch", "Kronometre veya geri sayım. Başlat/durdur: K, sıfırla: L.");
-        d("notes", "Ekranda tutulan kısa notlar. N tuşuyla hızlı düzenle.");
+        d("stopwatch", "Kronometre veya geri sayım. Tuşlar Kontroller menüsünden değiştirilebilir (varsayılan K ve L).");
+        d("notes", "Ekranda tutulan kısa notlar. Hızlı düzenleme tuşu Kontroller menüsünden değiştirilebilir (varsayılan N).");
         d("nearby", "Yakındaki oyuncuların adı, mesafesi ve canı.");
         d("targetarmor", "Baktığın oyuncunun zırhı ve dayanıklılığı.");
         d("compass", "Üstte yön çubuğu; waypointler de görünür.");
         d("hunger", "Açlık ve gizli doygunluk değeri.");
         d("itemcount", "Elindeki eşyadan envanterde kaç tane olduğunu gösterir.");
-        d("scoreboard", "Sunucu skor tablosunun konumunu, boyutunu ve görünürlüğünü ayarlar.");
+        d("scoreboard", "Skor tablosunu HUD editöründe sürükleyerek taşır, boyutunu ayarlar veya gizler.");
     }
 
     private static String dir(String d) {

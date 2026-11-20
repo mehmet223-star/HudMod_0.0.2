@@ -72,6 +72,17 @@ final class Wire {
         }
     }
 
+    /** İki dünya noktası arasında tek çizgi. */
+    void seg(DrawContext c, double ax, double ay, double az, double bx, double by, double bz, int col, int th) {
+        double[] a = cam(ax, ay, az), b = cam(bx, by, bz);
+        edge(c, a[0], a[1], a[2], b[0], b[1], b[2], col, th);
+    }
+
+    private double[] cam(double wx, double wy, double wz) {
+        double vx = wx - cx, vy = wy - cy, vz = wz - cz;
+        return new double[]{vx * rx + vz * rz, vx * ux + vy * uy + vz * uz, vx * fx + vy * fy + vz * fz};
+    }
+
     private void edge(DrawContext c, double x0, double y0, double z0, double x1, double y1, double z1, int col, int th) {
         if (z0 < NEAR && z1 < NEAR) return;
         if (z0 < NEAR) {

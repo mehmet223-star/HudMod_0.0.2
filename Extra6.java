@@ -59,25 +59,6 @@ final class Extra6 {
                 new Setting[]{Setting.num("range", "Menzil", 5, 32, 1, 16, " b"), Setting.bool("creeper", "Creeper uyarısı", true)},
                 0, 2, 4, 54);
 
-        addText("fallinfo", "Düşme Bilgisi", Mod.Cat.PVP, Items.MACE,
-                "Düşerken mesafeyi, tahmini düşme hasarını ve Mace bonus hasarını gösterir.", 2,
-                (mc, t) -> {
-                    var p = mc.player;
-                    if (p == null) { t.set(t.fmt("Düşme", "-")); return; }
-                    double f = p.fallDistance;
-                    if (f < 1.5) { t.set(t.fmt("Düşme", "-")); return; }
-                    double dmg = Math.max(0, f - 3.0);
-                    String s = Mods.f(f, 1) + " blok";
-                    if (t.s("dmg").on()) s += "  hasar ~" + Mods.f(dmg / 2.0, 1) + " kalp";
-                    if (t.s("mace").on()) {
-                        double bonus = Math.min(f, 3) * 4 + Math.max(0, Math.min(f, 8) - 3) * 2 + Math.max(0, f - 8);
-                        s += "  Mace +" + Mods.f(bonus, 0);
-                    }
-                    t.autoColor = dmg >= p.getHealth() ? 0xFFFF5555 : dmg > 0 ? 0xFFFFAA00 : 0xFF55FF55;
-                    t.set(t.fmt("Düşme", s));
-                },
-                new Setting[]{Setting.bool("dmg", "Düşme hasarını göster", true), Setting.bool("mace", "Mace bonusunu göster", true)},
-                1, 1, 4, 60);
 
         // Sohbet olayları (sadece modül açıkken etkili)
         ClientReceiveMessageEvents.ALLOW_GAME.register((msg, overlay) -> chat == null || !chat.active || overlay || chat.allow(msg));

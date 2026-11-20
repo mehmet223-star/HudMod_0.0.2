@@ -18,7 +18,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
-/** Zaman/Hava, Cooldown, Kronometre, Notlar, Yakındaki Oyuncular, Rakip Zırhı, Pusula, Açlık, Eşya Sayacı. */
+/** Zaman/Hava, Cooldown, Kronometre, Notlar, Rakip Zırhı, Pusula. */
 final class Extra3 {
     private Extra3() {}
 
@@ -47,27 +47,8 @@ final class Extra3 {
         Mods.add(stopwatch.at(1, 0, 0, 30), true);
         notes = new NotesMod(false);
         Mods.add(notes.at(0, 1, 4, -40), false);
-        Mods.add(new NearbyMod(false).at(0, 1, 4, 20), false);
         Mods.add(new TargetArmorMod(false).at(1, 1, 0, 100), false);
         Mods.add(new CompassMod(false).at(1, 0, 0, 4), false);
-
-        Mods.add(Mods.t("hunger", "Açlık", Mod.Cat.HUD, Items.COOKED_BEEF, false, 5, (mc, t) -> {
-            var p = mc.player;
-            if (p == null) { t.set(t.fmt("Açlık", "-")); return; }
-            var h = p.getHungerManager();
-            t.autoColor = Mods.hi(h.getFoodLevel(), 14, 8, 6);
-            t.set(t.fmt("Açlık", h.getFoodLevel() + "/20"), t.fmt("Doygunluk", Mods.f(h.getSaturationLevel(), 1)));
-        }).at(0, 0, 4, 214), true);
-
-        Mods.add(Mods.t("itemcount", "Eşya Sayacı", Mod.Cat.HUD, Items.CHEST, false, 5, (mc, t) -> {
-            var p = mc.player;
-            String s = "-";
-            if (p != null) {
-                ItemStack st = p.getMainHandStack();
-                if (!st.isEmpty()) s = st.getName().getString() + ": " + Mods.count(p, st.getItem());
-            }
-            t.set(t.fmt("Elde", s));
-        }).at(1, 2, 0, 96), false);
     }
 
     // ================= Zaman Değiştirici =================
@@ -117,6 +98,8 @@ final class Extra3 {
         private static final float[] SEC = {1f, 0.5f, 1f, 5f};
         private final ItemStack[] st = new ItemStack[IT.length];
         private final float[] prog = new float[IT.length];
+        /** Kendi attığımız pearl / rüzgar yükünü fırlatma anından yakalarız: sunucu cooldown yollamasa da çalışır. */
+        private final long[] own = new long[IT.length];
 
         CooldownMod(boolean en) {
             super("cooldown", "Cooldown", Cat.PVP, Items.ENDER_PEARL, true, en);
@@ -130,8 +113,23 @@ final class Extra3 {
         protected void refresh(MinecraftClient mc) {
             var p = mc.player;
             int rows = 0;
+            long now = System.currentTimeMillis();
+            if (p != null && mc.world != null) {
+                for (net.minecraft.entity.Entity e : mc.world.getEntities()) {
+                    var ty = e.getType();
+                    int k = ty == net.minecraft.entity.EntityType.ENDER_PEARL ? 0
+                            : ty == net.minecraft.entity.EntityType.WIND_CHARGE ? 1 : -1;
+                    if (k < 0 || e.age > 4) continue;
+                    if (e instanceof net.minecraft.entity.projectile.ProjectileEntity pr && pr.getOwner() == p) own[k] = now;
+                }
+            }
             for (int i = 0; i < IT.length; i++) {
-                prog[i] = p == null ? 0f : p.getItemCooldownManager().getCooldownProgress(st[i], 0f);
+                float v = p == null ? 0f : p.getItemCooldownManager().getCooldownProgress(st[i], 0f);
+                if (i < 2 && own[i] > 0) {
+                    float o = 1f - (now - own[i]) / (SEC[i] * 1000f);
+                    if (o > v) v = o;
+                }
+                prog[i] = Math.max(0f, v);
                 if (prog[i] > 0.001f) rows++;
             }
             cw = 90;
@@ -244,60 +242,6 @@ final class Extra3 {
         @Override
         protected void content(DrawContext c, TextRenderer tr, int x, int y, int color, boolean shadow) {
             for (int i = 0; i < lines.length; i++) Ui.text(c, tr, lines[i], x, y + i * 10, color, shadow);
-        }
-    }
-
-    // ================= Yakındaki Oyuncular =================
-    static final class NearbyMod extends Mod {
-        private final Setting sDist, sMax;
-        private String[] txt = {"Yakında oyuncu yok"};
-        private int[] col = {0xFF858B99};
-
-        NearbyMod(boolean en) {
-            super("nearby", "Yakındaki Oyuncular", Cat.PVP, Items.PLAYER_HEAD, true, en);
-            interval = 10;
-            sDist = Setting.num("dist", "Mesafe", 10, 100, 10, 40, " b");
-            sMax = Setting.num("max", "En fazla oyuncu", 1, 8, 1, 5, "");
-            add(sDist);
-            add(sMax);
-            cw = 100;
-            ch = 9;
-        }
-
-        @Override
-        protected void refresh(MinecraftClient mc) {
-            var p = mc.player;
-            List<PlayerEntity> l = new ArrayList<>();
-            if (p != null && mc.world != null) {
-                double md = sDist.value * sDist.value;
-                for (var o : mc.world.getPlayers()) {
-                    if (o != p && o.squaredDistanceTo(p) <= md) l.add(o);
-                }
-                l.sort(Comparator.comparingDouble(o -> o.squaredDistanceTo(p)));
-            }
-            int n = Math.min(l.size(), sMax.value);
-            if (n == 0) {
-                txt = new String[]{"Yakında oyuncu yok"};
-                col = new int[]{0xFF858B99};
-            } else {
-                txt = new String[n];
-                col = new int[n];
-                for (int i = 0; i < n; i++) {
-                    PlayerEntity o = l.get(i);
-                    double d = Math.sqrt(o.squaredDistanceTo(p));
-                    txt[i] = o.getName().getString() + "  " + (int) d + "m  " + (int) o.getHealth() + "hp";
-                    col[i] = d < 8 ? 0xFFFF5555 : d < 20 ? 0xFFFFD34D : 0xFFFFFFFF;
-                }
-            }
-            int w = 0;
-            for (String s : txt) w = Math.max(w, Ui.w(mc.textRenderer, s));
-            cw = w;
-            ch = txt.length * 10 - 1;
-        }
-
-        @Override
-        protected void content(DrawContext c, TextRenderer tr, int x, int y, int color, boolean shadow) {
-            for (int i = 0; i < txt.length; i++) Ui.text(c, tr, txt[i], x, y + i * 10, fa(col[i]), shadow);
         }
     }
 
