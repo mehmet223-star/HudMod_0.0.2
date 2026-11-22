@@ -131,8 +131,8 @@ final class ExtraMods {
         Mods.add(new StatsMod(false).at(2, 1, 6, 66), false);
         Mods.add(new GraphMod(false).at(0, 0, 4, 168), true);
 
-        alerts = new AlertsMod(false);
-        Mods.add(alerts.at(0, 0, 0, 0), false);
+        // Uyarılar modülü kaldırıldı (kullanıcı isteği); alerts null kalır.
+        alerts = null;
 
         cross = new CrossMod(false);
         Mods.add(cross.at(0, 0, 0, 0), false);

@@ -38,8 +38,8 @@ final class Extra3 {
     }
 
     static void init() {
-        time = new TimeMod(false);
-        Mods.add(time.at(0, 0, 0, 0), false);
+        // Zaman Değiştirici 1.21.11'de çalışmıyor (zaman sistemi yeniden yazıldı); menüde gösterilmez.
+        time = null;
         weather = new WeatherMod(false);
         Mods.add(weather.at(0, 0, 0, 0), false);
         Mods.add(new CooldownMod(false).at(1, 2, 0, 70), false);

@@ -44,7 +44,7 @@ final class Extra2 {
     // ================= Hitbox =================
     /** Yakındaki canlıların hitbox'ını ekrana tel kafes olarak çizer (sadece birinci şahıs görünümde). */
     static final class HitboxMod extends Mod {
-        private final Setting sPl, sDist, sMax, sCol, sTh, sWall, sEye, sLook;
+        private final Setting sPl, sDist, sMax, sCol, sColH, sColP, sTh, sWall, sEye, sLook;
         private final java.util.HashMap<Integer, Boolean> vis = new java.util.HashMap<>();
         private long visT;
 
@@ -53,7 +53,9 @@ final class Extra2 {
             sPl = Setting.bool("pl", "Sadece oyuncular", true);
             sDist = Setting.num("dist", "Mesafe", 8, 128, 8, 64, " b");
             sMax = Setting.num("max", "En fazla kutu", 1, 12, 1, 6, "");
-            sCol = Setting.color("col", "Renk", 1);
+            sCol = Setting.color("col", "Oyuncu rengi", 1);
+            sColH = Setting.color("colh", "Düşman mob rengi", 2);
+            sColP = Setting.color("colp", "Pasif mob rengi", 4);
             sTh = Setting.num("th", "Çizgi kalınlığı", 1, 3, 1, 1, " px");
             sWall = Setting.bool("wall", "Duvar arkasındakileri de göster", false);
             sEye = Setting.bool("eye", "Göz hizası çizgisi", false);
@@ -62,6 +64,8 @@ final class Extra2 {
             add(sDist);
             add(sMax);
             add(sCol);
+            add(sColH);
+            add(sColP);
             add(sTh);
             add(sWall);
             add(sEye);
@@ -100,7 +104,9 @@ final class Extra2 {
                 list.add(e);
             }
             list.sort(Comparator.comparingDouble(en -> en.squaredDistanceTo(p)));
-            int col = 0xFF000000 | Mods.colorOf(sCol.value, 0xFFFF5555);
+            int colPl = 0xFF000000 | Mods.colorOf(sCol.value, 0xFFFF5555);
+            int colHo = 0xFF000000 | Mods.colorOf(sColH.value, 0xFFFFAA00);
+            int colPa = 0xFF000000 | Mods.colorOf(sColP.value, 0xFF55FF55);
 
             long now = System.currentTimeMillis();
             boolean refresh = now - visT > 100 || now < visT;
@@ -116,6 +122,7 @@ final class Extra2 {
                     if (!v) continue;
                 }
                 n++;
+                int col = e instanceof PlayerEntity ? colPl : e instanceof net.minecraft.entity.mob.HostileEntity ? colHo : colPa;
                 var b = e.getBoundingBox();
                 double ox = ep.x - e.getX(), oy = ep.y - e.getY(), oz = ep.z - e.getZ();
                 w.box(c, b, ox, oy, oz, col, sTh.value, false);

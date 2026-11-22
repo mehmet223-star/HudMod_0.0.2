@@ -1,5 +1,6 @@
 package com.example.hudmod;
 
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -8,6 +9,8 @@ import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
 /** İkonlu HUD modülleri: PvP Eşyaları, Eşya Dayanıklılığı, Totem Pop, Envanter. */
 final class Extra8 {
@@ -18,6 +21,48 @@ final class Extra8 {
         m.desc = "Envanterini ekranda gösterir. İstersen hotbar da görünür.";
         m.isNew = true;
         Mods.add(m.at(0, 1, 4, 0), false);
+
+        WelcomeMod w = new WelcomeMod(false);
+        w.desc = "Sunucuya girince sohbette sadece sana görünen kısa bir karşılama mesajı gösterir. Diğer oyunculara bir şey gönderilmez.";
+        w.isNew = true;
+        Mods.add(w.at(0, 0, 0, 0), false);
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> joinTick = HudMod.tick + 60);
+    }
+
+    private static long joinTick = -1;
+
+    // ================= Karşılama mesajı =================
+    /** Sadece yerel sohbete yazar; sunucuya veya diğer oyunculara hiçbir şey gönderilmez. */
+    static final class WelcomeMod extends Mod {
+        private final Setting sSp, sTips;
+
+        WelcomeMod(boolean en) {
+            super("welcome", "Karşılama Mesajı", Cat.UTIL, Items.NAME_TAG, false, en);
+            sSp = Setting.bool("sp", "Tek oyunculuda da göster", false);
+            sTips = Setting.bool("tips", "Kısa ipucu satırı", true);
+            add(sSp);
+            add(sTips);
+        }
+
+        @Override
+        public void onTick(MinecraftClient mc) {
+            if (joinTick < 0 || HudMod.tick < joinTick) return;
+            joinTick = -1;
+            var p = mc.player;
+            if (p == null) return;
+            if (mc.getCurrentServerEntry() == null && !sSp.on()) return;
+            String key = HudMod.openMenu != null ? HudMod.openMenu.getBoundKeyLocalizedText().getString() : "?";
+            p.sendMessage(Text.literal("[GDF Client] ").formatted(Formatting.AQUA)
+                    .append(Text.literal("Hoş geldin! Menüyü açmak için ").formatted(Formatting.WHITE))
+                    .append(Text.literal(key).formatted(Formatting.YELLOW))
+                    .append(Text.literal(" tuşuna bas.").formatted(Formatting.WHITE)), false);
+            if (sTips.on()) {
+                int n = 0;
+                for (Mod m : Mods.ALL) if (m.enabled) n++;
+                p.sendMessage(Text.literal("[GDF Client] ").formatted(Formatting.AQUA)
+                        .append(Text.literal(n + " modül açık. HUD'u menüden düzenleyebilirsin.").formatted(Formatting.GRAY)), false);
+            }
+        }
     }
 
     /** Eşyayı verilen piksel boyutunda çizer (16 = normal). */

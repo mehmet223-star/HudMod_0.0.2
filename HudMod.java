@@ -25,7 +25,7 @@ import org.lwjgl.glfw.GLFW;
 public class HudMod implements ClientModInitializer {
     public static long tick = 1;
     public static long tickNs = System.nanoTime();
-    private static KeyBinding openMenu;
+    static KeyBinding openMenu;
     public static KeyBinding zoomKey, snapKey, wpKey, stopKey, stopResetKey, noteKey;
 
     @Override

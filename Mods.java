@@ -249,7 +249,7 @@ final class Mods {
         d("fpsgraph", "FPS grafiği: kare sürelerini renkli çubuklarla gösterir.");
         d("togglesneak", "Eğilme tuşu aç/kapa olur, basılı tutmak gerekmez.");
         d("lowfire", "Yanarken ekranı kaplayan ateş görüntüsünü gizler.");
-        d("hitbox", "Yakındaki oyuncuların hitbox'ını tel kafes olarak çizer. Duvar arkasındakiler gizlenir; göz hizası ve bakış çizgisi eklenebilir.");
+        d("hitbox", "Yakındaki oyuncuların hitbox'ını tel kafes olarak çizer. Duvar arkasındakiler gizlenir; oyuncu, düşman mob ve pasif mob için ayrı renk seçilir; göz hizası ve bakış çizgisi eklenebilir.");
         d("minimap", "Üstten bakan hafif harita; oyuncular ve waypointler görünür.");
         d("skinlayers", "Skin katmanlarını (ceket, kol, bacak, şapka, pelerin) ayarlar.");
         d("timechanger", "Sadece sende gündüz/gece saatini sabitler veya hızlı döndürür.");
