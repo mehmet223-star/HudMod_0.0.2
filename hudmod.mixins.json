@@ -9,7 +9,8 @@
     "EntityMixin",
     "WorldMixin",
     "PlayerSkinMixin",
-    "ParticleManagerMixin"
+    "ParticleManagerMixin",
+    "GameRendererBlurMixin"
   ],
   "injectors": {
     "defaultRequire": 0

@@ -11,12 +11,34 @@ final class Extra7 {
     private Extra7() {}
 
     static OutlineMod outline;
+    static MotionBlurMod blur;
 
     static void init() {
         outline = new OutlineMod(false);
         outline.desc = "Baktığın bloğun çerçevesini istediğin renk ve kalınlıkta çizer.";
         outline.isNew = true;
         Mods.add(outline.at(0, 0, 0, 0), false);
+
+        blur = new MotionBlurMod(false);
+        blur.desc = "Deneysel. Hareket ederken görüntü hafifçe izli kalır. Mobilde FPS düşürebilir; sorun olursa kapat.";
+        blur.isNew = true;
+        Mods.add(blur.at(0, 0, 0, 0), false);
+    }
+
+    /** Oyunun post-effect sistemiyle önceki kareyi şimdiki kareye karıştırır. Asıl iş ModHooks.motionBlur içinde. */
+    static final class MotionBlurMod extends Mod {
+        private final Setting sLvl, sGui;
+
+        MotionBlurMod(boolean en) {
+            super("motionblur", "Motion Blur", Cat.UTIL, Items.COBWEB, false, en);
+            sLvl = Setting.choice("lvl", "Güç", 0, "Hafif", "Orta", "Güçlü");
+            sGui = Setting.bool("gui", "Menü ve HUD'ı da bulanıklaştır", false);
+            add(sLvl);
+            add(sGui);
+        }
+
+        int level() { return sLvl.value; }
+        boolean inGuis() { return sGui.on(); }
     }
 
     static void overlay(DrawContext c, MinecraftClient mc, int sw, int sh) {

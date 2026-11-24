@@ -46,6 +46,43 @@ public final class ModHooks {
                 || t == net.minecraft.particle.ParticleTypes.LARGE_SMOKE;
     }
 
+    // ---------- Motion Blur ----------
+    // Oyunun kendi post-effect sistemi, çalışma zamanı (intermediary) adlarıyla çağrılır. Uyuşmazsa bir kez kapanır.
+    private static boolean blurBroken;
+    private static java.lang.reflect.Method mLoader, mLoad, mRender, mFb;
+    private static java.lang.reflect.Field fAlloc;
+    private static Object fbSet;
+
+    private static java.lang.reflect.Method find(Class<?> c, String name, int params) throws NoSuchMethodException {
+        for (var m : c.getMethods()) if (m.getName().equals(name) && m.getParameterCount() == params) return m;
+        throw new NoSuchMethodException(name);
+    }
+
+    public static void motionBlur(Object gameRenderer, boolean gui) {
+        var mb = Extra7.blur;
+        if (blurBroken || mb == null || !mb.active || gui != mb.inGuis()) return;
+        var mc = MinecraftClient.getInstance();
+        if (mc.world == null && !gui) return;
+        try {
+            if (mLoader == null) {
+                mLoader = find(MinecraftClient.class, "method_62887", 0);
+                mFb = find(MinecraftClient.class, "method_1522", 0);
+                mLoad = find(mLoader.getReturnType(), "method_62941", 2);
+                mRender = find(mLoad.getReturnType(), "method_1258", 2);
+                fbSet = Class.forName("net.minecraft.class_9960").getField("field_53902").get(null);
+                fAlloc = net.minecraft.client.render.GameRenderer.class.getDeclaredField("field_53066");
+                fAlloc.setAccessible(true);
+            }
+            Object loader = mLoader.invoke(mc);
+            Object proc = mLoad.invoke(loader, net.minecraft.util.Identifier.of("hudmod", "motion_blur_" + (mb.level() + 1)), fbSet);
+            if (proc == null) throw new IllegalStateException("post effect yok");
+            mRender.invoke(proc, mFb.invoke(mc), fAlloc.get(gameRenderer));
+        } catch (Throwable t) {
+            blurBroken = true;
+            System.err.println("[GDF Client] Motion Blur kapatıldı: " + t);
+        }
+    }
+
     /** Skin Değiştirici: sadece yerel oyuncunun skin dokusunu değiştirir. */
     public static Object skin(Object self, Object orig) {
         return Extra4.override(self, orig);

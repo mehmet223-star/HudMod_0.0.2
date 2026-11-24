@@ -6,3 +6,5 @@ Carlito (Copyright Lukasz Dziedzic, SIL Open Font License 1.1) - https://scripts
 Caladea (Copyright Huerta Tipografica, SIL Open Font License 1.1) - https://scripts.sil.org/OFL
 Liberation Sans (Copyright Red Hat, Inc., SIL Open Font License 1.1) - https://scripts.sil.org/OFL
 DejaVu Sans and DejaVu Sans Mono (Copyright Bitstream, Inc.; DejaVu changes in public domain) - https://dejavu-fonts.github.io/License.html
+
+Motion Blur: fikir (önceki kareyi şimdiki kareyle karıştırma) Sol Client / AxolotlClient (LGPL-3.0) projelerinden esinlenmiştir; kod ve shader bu projede sıfırdan yazılmıştır.
