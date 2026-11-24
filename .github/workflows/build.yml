@@ -17,12 +17,15 @@ jobs:
           D=src/main/java/com/example/hudmod
           rm -f ArmorElement.java Combat.java Elements.java GraphElement.java HudConfig.java HudConfig_1.java HudEditorScreen.java HudEditorScreen_1.java HudElement.java HudElement_1.java KeystrokesElement.java SettingsScreen.java TextElement.java CpsTracker_1.java
           mkdir -p $D/mixin src/main/resources/assets/hudmod/lang src/main/resources/assets/hudmod/font src/main/resources/assets/hudmod/presets/skins src/main/resources/assets/hudmod/presets/capes
+          mkdir -p src/main/resources/assets/hudmod/post_effect src/main/resources/assets/hudmod/shaders/post
           mv *Mixin.java $D/mixin/
           mv *.java $D/
           mv fabric.mod.json hudmod.mixins.json src/main/resources/
           mv en_us.json tr_tr.json src/main/resources/assets/hudmod/lang/
           mv gdf.ttf gdfbold.ttf gdf.json gdfbold.json src/main/resources/assets/hudmod/font/
           mv f_*.ttf f_*.json src/main/resources/assets/hudmod/font/
+          for f in pe_*.json; do mv "$f" "src/main/resources/assets/hudmod/post_effect/${f#pe_}"; done
+          for f in sh_*.fsh; do mv "$f" "src/main/resources/assets/hudmod/shaders/post/${f#sh_}"; done
           for f in ps_*.png; do mv "$f" "src/main/resources/assets/hudmod/presets/skins/${f#ps_}"; done
           for f in pc_*.png; do mv "$f" "src/main/resources/assets/hudmod/presets/capes/${f#pc_}"; done
       - run: gradle build
