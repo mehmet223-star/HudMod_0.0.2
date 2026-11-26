@@ -98,42 +98,28 @@ final class Ui {
         return r + "..";
     }
 
-    // ---------- harf aralıklı ----------
-    static int sw(TextRenderer tr, String s) {
-        int w = 0;
-        for (int i = 0; i < s.length(); i++) w += w(tr, String.valueOf(s.charAt(i))) + 1;
-        return Math.max(0, w - 1);
-    }
+    // ---------- (eski harf aralıklı API; artık düz metin, daha net okunur) ----------
+    static int sw(TextRenderer tr, String s) { return w(tr, s); }
 
     static void spaced(DrawContext c, TextRenderer tr, String s, int x, int y, int color, boolean shadow) {
-        int cx = x;
-        for (int i = 0; i < s.length(); i++) {
-            String ch = String.valueOf(s.charAt(i));
-            text(c, tr, ch, cx, y, color, shadow);
-            cx += w(tr, ch) + 1;
-        }
+        text(c, tr, s, x, y, color, shadow);
     }
 
     static void spacedCenter(DrawContext c, TextRenderer tr, String s, int cx, int y, int color, boolean shadow) {
-        spaced(c, tr, s, cx - sw(tr, s) / 2, y, color, shadow);
+        text(c, tr, s, cx - w(tr, s) / 2, y, color, shadow);
     }
 
-    static int swBold(TextRenderer tr, String s) {
-        int w = 0;
-        for (int i = 0; i < s.length(); i++) w += wb(tr, String.valueOf(s.charAt(i))) + 1;
-        return Math.max(0, w - 1);
-    }
+    static int swBold(TextRenderer tr, String s) { return wb(tr, s); }
 
     static void spacedBold(DrawContext c, TextRenderer tr, String s, int x, int y, int color, boolean shadow) {
-        int cx = x;
-        for (int i = 0; i < s.length(); i++) {
-            String ch = String.valueOf(s.charAt(i));
-            textB(c, tr, ch, cx, y, color, shadow);
-            cx += wb(tr, ch) + 1;
-        }
+        textB(c, tr, s, x, y, color, shadow);
     }
 
     static void spacedCenterBold(DrawContext c, TextRenderer tr, String s, int cx, int y, int color, boolean shadow) {
-        spacedBold(c, tr, s, cx - swBold(tr, s) / 2, y, color, shadow);
+        textB(c, tr, s, cx - wb(tr, s) / 2, y, color, shadow);
+    }
+
+    static void bold(DrawContext c, TextRenderer tr, String s, int x, int y, int color) {
+        textB(c, tr, s, x, y, color, false);
     }
 }

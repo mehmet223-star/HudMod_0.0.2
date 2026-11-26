@@ -16,10 +16,10 @@ import java.util.Map;
 /** GDF Client ana menüsü: profiller, kategori filtreleri, modül kartları, waypointler, ayarlar. */
 public class ModMenuScreen extends Screen {
     private static final int TEXT = 0xFFE9EBF0, DIM = 0xFF858B99, GREEN = 0xFF2BAA5F, RED = 0xFFC4244A;
-    private static final String[] CHIPS = {"HEPSİ", "YENİ", "HUD", "PVP", "UTILITY"};
-    private static final String[] TABS_L = {"MODS", "WAYPOINTS", "SUNUCULAR", "AYARLAR"};
-    private static final String[] TABS_S = {"MODS", "WP", "SRV", "AYAR"};
-    private static final String[] SET_CHIPS = {"HEPSİ", "GÖRÜNÜM", "HUD", "EDİTÖR", "PROFİL"};
+    private static final String[] CHIPS = {"Hepsi", "Yeni", "HUD", "PvP", "Utility"};
+    private static final String[] TABS_L = {"Modlar", "Waypoints", "Sunucular", "Ayarlar"};
+    private static final String[] TABS_S = {"Modlar", "WP", "SRV", "Ayar"};
+    private static final String[] SET_CHIPS = {"Hepsi", "Görünüm", "HUD", "Editör", "Profil"};
     private static final int SH_H = 14, SI_H = 16;
     private static final int HEAD = 6, NAV = 26, CH = 84, GAP = 6, ROW = 20, WROW = 26;
 
@@ -296,16 +296,16 @@ public class ModMenuScreen extends Screen {
         m.popMatrix();
         if (side >= 90) {
             int x2 = px + 4 + Math.round(Ui.swBold(textRenderer, "GDF") * 1.5f) + 5;
-            Ui.spaced(c, textRenderer, "CLIENT", x2, ny + 9, ca(DIM), false);
+            Ui.text(c, textRenderer, "Client", x2, ny + 9, ca(DIM), false);
         }
         int tx = gx;
         for (int i = 0; i < tabs().length; i++) {
             int w = Ui.sw(textRenderer, tabs()[i]) + 22;
             boolean sel = opt == null ? tab == i : i == 0;
             boolean hov = Gfx.in(mx, my, tx, ny + 3, w, 18);
-            int bg = sel ? acc() : hov ? Anim.mix(Theme.btn(), 0xFFFFFFFF, 0.1f) : Theme.btn();
-            Gfx.rrect(c, tx, ny + 3, w, 18, ca(bg), true);
-            Ui.spacedCenter(c, textRenderer, tabs()[i], tx + w / 2, ny + 8, ca(sel ? 0xFFFFFFFF : DIM), false);
+            if (hov && !sel) Gfx.rrect(c, tx, ny + 3, w, 18, ca(0x14FFFFFF), true);
+            Ui.center(c, textRenderer, tabs()[i], tx + w / 2, ny + 8, ca(sel ? TEXT : hov ? 0xFFB8BECC : DIM), false);
+            if (sel) Gfx.rrect(c, tx + 5, ny + 19, w - 10, 2, ca(acc()), true);
             tx += w + 4;
         }
         boolean xh = Gfx.in(mx, my, px + pw - 22, ny + 3, 18, 18);
@@ -331,9 +331,9 @@ public class ModMenuScreen extends Screen {
     /** Yan panel satırları: {tür, ad}. tür: 0 başlık, 1 hazır profil, 2 kendi profilim, 3 boş ipucu. */
     private List<Object[]> sideEntries() {
         List<Object[]> r = new ArrayList<>();
-        r.add(new Object[]{0, "HAZIR PROFİLLER"});
+        r.add(new Object[]{0, "Hazır profiller"});
         for (String n : Profiles.BUILTIN) r.add(new Object[]{1, n});
-        r.add(new Object[]{0, "PROFİLLERİM"});
+        r.add(new Object[]{0, "Profillerim"});
         boolean any = false;
         for (String n : Profiles.names()) {
             if (!Profiles.isBuiltin(n)) {
@@ -396,16 +396,17 @@ public class ModMenuScreen extends Screen {
             Gfx.rrect(c, sx + side - 4, ty, 2, th, ca(0xFF4A5164), false);
         }
         c.fill(sx + 6, bot + 2, sx + side - 6, bot + 3, ca(Theme.line()));
-        btn(c, sx + 3, sy + shh - 40, side - 6, 16, "YENİ PROFİL", Theme.btn(), mx, my);
-        btn(c, sx + 3, sy + shh - 20, side - 6, 16, "HUD DÜZENİ", acc(), mx, my);
+        btn(c, sx + 3, sy + shh - 40, side - 6, 16, "Yeni profil", Theme.btn(), mx, my);
+        btn(c, sx + 3, sy + shh - 20, side - 6, 16, "HUD düzeni", acc(), mx, my);
     }
 
     private void drawChips(DrawContext c, String[] arr, int sel) {
         int cx = gx;
         for (int i = 0; i < arr.length; i++) {
             int w = Ui.sw(textRenderer, arr[i]) + 14;
-            Gfx.rrect(c, cx, py + HEAD + 4, w, 14, ca(i == sel ? acc() : Theme.btn()), true);
-            Ui.spaced(c, textRenderer, arr[i], cx + 7, py + HEAD + 8, ca(i == sel ? 0xFFFFFFFF : DIM), false);
+            Gfx.rrect(c, cx, py + HEAD + 4, w, 14, ca(i == sel ? Anim.mix(Theme.panel(), acc(), 0.28f) : Theme.btn()), true);
+            if (i == sel) Gfx.border(c, cx, py + HEAD + 4, w, 14, ca(Anim.mix(Theme.panel(), acc(), 0.6f)));
+            Ui.text(c, textRenderer, arr[i], cx + 7, py + HEAD + 7, ca(i == sel ? TEXT : DIM), false);
             cx += w + 4;
         }
     }
@@ -425,8 +426,9 @@ public class ModMenuScreen extends Screen {
         for (int i = 0; i < CHIPS.length; i++) {
             int w = Ui.sw(textRenderer, CHIPS[i]) + 14;
             boolean sel = filter == i;
-            Gfx.rrect(c, cx, py + HEAD + 4, w, 14, ca(sel ? acc() : Theme.btn()), true);
-            Ui.spaced(c, textRenderer, CHIPS[i], cx + 7, py + HEAD + 8, ca(sel ? 0xFFFFFFFF : DIM), false);
+            Gfx.rrect(c, cx, py + HEAD + 4, w, 14, ca(sel ? Anim.mix(Theme.panel(), acc(), 0.28f) : Theme.btn()), true);
+            if (sel) Gfx.border(c, cx, py + HEAD + 4, w, 14, ca(Anim.mix(Theme.panel(), acc(), 0.6f)));
+            Ui.text(c, textRenderer, CHIPS[i], cx + 7, py + HEAD + 7, ca(sel ? TEXT : DIM), false);
             cx += w + 4;
         }
 
@@ -457,38 +459,35 @@ public class ModMenuScreen extends Screen {
             boolean on = md.enabled;
             int cbg = Anim.mix(Theme.card(), Theme.cardHov(), md.hover);
             Gfx.rrect(c, x, y, cardW, CH, ca(cbg), true);
-            Gfx.border(c, x, y, cardW, CH, ca(Anim.mix(Theme.line(), accent, md.hover * 0.3f)));
+            Gfx.border(c, x, y, cardW, CH, ca(Anim.mix(Anim.mix(Theme.line(), accent, md.hover * 0.35f), accent, en * 0.55f)));
+            if (en > 0.02f) c.fill(x + 8, y + 1, x + cardW - 8, y + 2, ca(wa(accent, (int) (en * 200))));
 
-            // başlık + favori kalbi
-            Ui.text(c, textRenderer, Ui.fit(textRenderer, md.name, cardW - 28), x + 7, y + 7,
-                    ca(Anim.mix(0xFF6B7385, TEXT, en)), false);
+            // ikon karosu
+            int tile = Anim.mix(Theme.btn(), Anim.mix(Theme.panel(), accent, 0.30f), en);
+            Gfx.rrect(c, x + 8, y + 9 - Math.round(md.hover), 26, 26, ca(tile), true);
+            Glyph.draw(c, Glyph.forMod(md), x + 21, y + 22 - Math.round(md.hover), 14,
+                    ca(Anim.mix(0xFF6B7385, 0xFFFFFFFF, en)));
             Gfx.heart(c, x + cardW - 15, y + 7, ca(md.fav ? 0xFFFF4D6A : 0xFF3F4555));
 
-            // ikon (kapalıyken soluk)
-            int ix = x + cardW / 2;
-            mat.pushMatrix();
-            mat.translate(ix - 16f, y + 21f - md.hover * 1.5f);
-            mat.scale(2f, 2f);
-            c.drawItem(md.icon, 0, 0);
-            mat.popMatrix();
-            if (!on) c.fill(ix - 18, y + 18, ix + 18, y + 56, ca(wa(cbg, 0x99)));
-
-            // YENİ rozeti
+            // ad + açıklama
+            Ui.bold(c, textRenderer, Ui.fit(textRenderer, md.name, cardW - 16 - (md.isNew ? 24 : 0)), x + 8, y + 41,
+                    ca(Anim.mix(0xFF8C93A4, TEXT, en)));
             if (md.isNew) {
-                Gfx.rrect(c, x + 5, y + 20, 25, 9, ca(0xFF1F9D4D), true);
-                Ui.text(c, textRenderer, "NEW", x + 9, y + 21, ca(0xFFFFFFFF), false);
+                int nx = x + 8 + Math.min(cardW - 16 - 24, Ui.swBold(textRenderer, md.name)) + 4;
+                Gfx.rrect(c, nx, y + 40, 18, 10, ca(0xFF1F9D4D), true);
+                Ui.text(c, textRenderer, "New", nx + 3, y + 41, ca(0xFFFFFFFF), false);
             }
+            String ds = md.desc.isEmpty() ? md.cat.name() : md.desc;
+            Ui.text(c, textRenderer, Ui.fit(textRenderer, ds, cardW - 16), x + 8, y + 52, ca(0xFF666E80), false);
 
-            // alt satır: dişli (ayarlar) + Enabled/Disabled
+            // alt satır: dişli + anahtar
             boolean gh2 = Gfx.in(mx, my, x + 5, y + 62, 18, 16);
-            int gb = gh2 ? Anim.mix(Theme.btn(), 0xFFFFFFFF, 0.1f) : Theme.btn();
-            Gfx.rrect(c, x + 5, y + 62, 18, 16, ca(gb), true);
-            Gfx.gear(c, x + 14, y + 70, ca(gh2 ? TEXT : 0xFF8C94A8), ca(gb));
-            boolean th = Gfx.in(mx, my, x + 27, y + 62, cardW - 32, 16);
-            int sbg = Anim.mix(Anim.mix(Theme.btn(), 0xFF1E5B2E, en), 0xFFFFFFFF, th ? 0.08f : 0f);
-            Gfx.rrect(c, x + 27, y + 62, cardW - 32, 16, ca(sbg), true);
-            Ui.center(c, textRenderer, on ? "ENABLED" : "DISABLED", x + 27 + (cardW - 32) / 2, y + 66,
-                    ca(Anim.mix(0xFF6B7385, 0xFF62E08A, en)), false);
+            Gfx.rrect(c, x + 5, y + 62, 18, 16, ca(gh2 ? Anim.mix(Theme.btn(), 0xFFFFFFFF, 0.1f) : Theme.btn()), true);
+            Gfx.gear(c, x + 14, y + 70, ca(gh2 ? TEXT : 0xFF8C94A8), ca(gh2 ? Anim.mix(Theme.btn(), 0xFFFFFFFF, 0.1f) : Theme.btn()));
+            Ui.text(c, textRenderer, on ? "Açık" : "Kapalı", x + 29, y + 66, ca(Anim.mix(0xFF6B7385, accent, en)), false);
+            int swx = x + cardW - 33, swy = y + 64;
+            Gfx.rrect(c, swx, swy, 26, 12, ca(Anim.mix(0xFF2A2F3C, accent, en)), true);
+            Gfx.rrect(c, swx + 2 + Math.round(en * 14), swy + 2, 8, 8, ca(0xFFFFFFFF), true);
         }
         c.disableScissor();
         scrollbar(c);
@@ -601,7 +600,7 @@ public class ModMenuScreen extends Screen {
             if (y + ROW < gy || y > gy + gh) continue;
             Object o = rows.get(i);
             if (o instanceof String str && str.startsWith("#")) {
-                Ui.spaced(c, textRenderer, str.substring(1), gx + 4, y + 6, ca(acc()), false);
+                Ui.bold(c, textRenderer, str.substring(1), gx + 4, y + 6, ca(acc()));
                 c.fill(gx, y + ROW - 3, gx + gw - 6, y + ROW - 2, ca(Theme.line()));
                 continue;
             }
@@ -654,7 +653,7 @@ public class ModMenuScreen extends Screen {
     }
 
     private void drawSwitch(DrawContext c, int x, int y, float t) {
-        Gfx.rrect(c, x, y, 28, 12, ca(Anim.mix(0xFF3A4050, GREEN, t)), true);
+        Gfx.rrect(c, x, y, 28, 12, ca(Anim.mix(0xFF2A2F3C, acc(), t)), true);
         Gfx.rrect(c, x + 2 + Math.round(t * 16), y + 2, 8, 8, ca(0xFFFFFFFF), true);
     }
 
