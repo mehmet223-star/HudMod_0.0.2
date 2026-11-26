@@ -73,6 +73,14 @@ public class ModMenuScreen extends Screen {
     // ---------- yardımcılar ----------
     private int acc() { return Mods.accent(); }
 
+    /** Açık renkli (ör. beyaz vurgu) zeminlerde koyu, diğerlerinde açık yazı/düğme rengi. */
+    private static boolean light(int c) {
+        int r = (c >> 16) & 255, g = (c >> 8) & 255, b = c & 255;
+        return r * 0.299 + g * 0.587 + b * 0.114 > 150;
+    }
+
+    private static int onCol(int bg) { return light(bg) ? 0xFF12141A : 0xFFFFFFFF; }
+
     private int ca(int argb) {
         int a = Math.round(((argb >>> 24) & 255) * open);
         return (a << 24) | (argb & 0xFFFFFF);
@@ -177,7 +185,7 @@ public class ModMenuScreen extends Screen {
     private boolean btn(DrawContext c, int x, int y, int w, int h, String t, int base, int mx, int my) {
         boolean hov = Gfx.in(mx, my, x, y, w, h);
         Gfx.rrect(c, x, y, w, h, ca(Anim.mix(base, 0xFFFFFFFF, hov ? 0.14f : 0f)), true);
-        Ui.spacedCenter(c, textRenderer, t, x + w / 2, y + (h - 8) / 2 + 1, ca(TEXT), false);
+        Ui.spacedCenter(c, textRenderer, t, x + w / 2, y + (h - 8) / 2 + 1, ca(light(base) ? 0xFF12141A : TEXT), false);
         return hov;
     }
 
@@ -487,7 +495,7 @@ public class ModMenuScreen extends Screen {
             Ui.text(c, textRenderer, on ? "Açık" : "Kapalı", x + 29, y + 66, ca(Anim.mix(0xFF6B7385, accent, en)), false);
             int swx = x + cardW - 33, swy = y + 64;
             Gfx.rrect(c, swx, swy, 26, 12, ca(Anim.mix(0xFF2A2F3C, accent, en)), true);
-            Gfx.rrect(c, swx + 2 + Math.round(en * 14), swy + 2, 8, 8, ca(0xFFFFFFFF), true);
+            Gfx.rrect(c, swx + 2 + Math.round(en * 14), swy + 2, 8, 8, ca(onCol(Anim.mix(0xFF2A2F3C, accent, en))), true);
         }
         c.disableScissor();
         scrollbar(c);
@@ -654,7 +662,7 @@ public class ModMenuScreen extends Screen {
 
     private void drawSwitch(DrawContext c, int x, int y, float t) {
         Gfx.rrect(c, x, y, 28, 12, ca(Anim.mix(0xFF2A2F3C, acc(), t)), true);
-        Gfx.rrect(c, x + 2 + Math.round(t * 16), y + 2, 8, 8, ca(0xFFFFFFFF), true);
+        Gfx.rrect(c, x + 2 + Math.round(t * 16), y + 2, 8, 8, ca(onCol(Anim.mix(0xFF2A2F3C, acc(), t))), true);
     }
 
     // ---------- girdi ----------

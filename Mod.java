@@ -160,8 +160,12 @@ public abstract class Mod {
         m.scale(s, s);
 
         int al = Math.round(sAlpha.value * a);
-        if (sBg.on() && al > 3) Gfx.rrect(c, 0, 0, ww, hh, (al << 24) | 0x0C0C14, true);
-        if (sAccent.on()) c.fill(0, 1, 2, hh - 1, fa(Mods.accent()));
+        if (sBg.on() && al > 3) {
+            Gfx.rrect(c, 0, 0, ww, hh, (al << 24) | 0x0B0D13, true);
+            int ba = Math.min(255, al / 5 + 8);
+            Gfx.border(c, 0, 0, ww, hh, fa((ba << 24) | 0xFFFFFF));
+        }
+        if (sAccent.on()) Gfx.rrect(c, 2, 3, 2, hh - 6, fa(Mods.accent()), false);
         content(c, tr, 4 + (sAccent.on() ? 3 : 0), 4, fa(pick(sColor.value)), sShadow.on());
         m.popMatrix();
     }

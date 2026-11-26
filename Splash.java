@@ -57,7 +57,7 @@ final class Splash {
         // alt yazı + ilerleme çubuğu
         float a3 = a * ease((t - 0.9f) / 0.5f);
         if (a3 > 0.04f) {
-            Ui.spacedCenter(c, tr, "MODÜLLER YÜKLENİYOR", w / 2, h / 2 + 30, col(0x8C93A3, a3), false);
+            Ui.spacedCenter(c, tr, "Modüller yükleniyor", w / 2, h / 2 + 30, col(0x8C93A3, a3), false);
             int bw = 120, bx = w / 2 - bw / 2, by = h / 2 + 46;
             c.fill(bx, by, bx + bw, by + 2, col(0x262A33, a3));
             int fw = Math.round(bw * ease((t - 0.8f) / 1.9f));
