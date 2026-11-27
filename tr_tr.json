@@ -6,5 +6,7 @@
   "key.hudmod.stopwatch": "Kronometre Baslat/Durdur",
   "key.hudmod.stopreset": "Kronometre Sifirla",
   "key.hudmod.note": "Hizli Not",
+  "key.hudmod.focus": "Odak Modu",
+  "key.hudmod.clip": "Klip Isaretleyici",
   "key.category.hudmod.main": "GDF Client"
 }

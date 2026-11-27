@@ -26,6 +26,7 @@ final class Extra4 {
     static SkinChanger skin;
     static final Identifier TEX_ID = Identifier.of("hudmod", "custom_skin");
     static final Identifier CAPE_ID = Identifier.of("hudmod", "custom_cape");
+    static final Identifier ELYTRA_ID = Identifier.of("hudmod", "custom_elytra");
 
     static void init() {
         skin = new SkinChanger(false);
@@ -143,11 +144,13 @@ final class Extra4 {
             }
             if (skin.capeLoaded) {
                 // Pelerin bileşeni: ana dokudan sonraki ilk "doku" tipli alan (eski sürümde Identifier, yenide asset kaydı)
-                for (int i = 1; i < rc.length; i++) {
+                int found = 0;
+                for (int i = 1; i < rc.length && found < 2; i++) {
                     boolean texType = types[i] == Identifier.class || types[i].isAssignableFrom(body.getClass());
                     if (!texType || types[i] == String.class) continue;
-                    args[i] = types[i] == Identifier.class ? CAPE_ID : swap(body, CAPE_ID);
-                    break;
+                    Identifier use = found == 0 ? CAPE_ID : ELYTRA_ID;
+                    args[i] = types[i] == Identifier.class ? use : swap(body, use);
+                    found++;
                 }
             }
             Constructor<?> ctor = k.getDeclaredConstructor(types);
@@ -184,19 +187,53 @@ final class Extra4 {
         try {
             NativeImage img = NativeImage.read(new ByteArrayInputStream(e.bytes()));
             int w = img.getWidth(), h = img.getHeight();
-            boolean ok = cape ? (w == 64 && h == 32) : (w == 64 && h == 64);
+            boolean ok = cape ? (w % 64 == 0 && h * 2 == w && w <= 512) : (w == 64 && h == 64);
             if (!ok) {
                 img.close();
-                return (cape ? "Pelerin 64x32" : "Skin 64x64") + " olmalı (bu " + w + "x" + h + ")";
+                return (cape ? "Pelerin 64x32 (veya 128x64)" : "Skin 64x64") + " olmalı (bu " + w + "x" + h + ")";
             }
+            NativeImage ely = cape ? elytraFrom(img) : null;
             Object tex = makeTexture(img);
             var tm = mc.getTextureManager();
             try { tm.destroyTexture(id); } catch (Throwable ignored) {}
             tm.registerTexture(id, (net.minecraft.client.texture.AbstractTexture) tex);
+            if (ely != null) {
+                try { tm.destroyTexture(ELYTRA_ID); } catch (Throwable ignored) {}
+                tm.registerTexture(ELYTRA_ID, (net.minecraft.client.texture.AbstractTexture) makeTexture(ely));
+            }
             return null;
         } catch (Throwable t) {
             return "Dosya yüklenemedi";
         }
+    }
+
+    /** Pelerin dokusundan, kanat UV düzenine uygun elytra dokusu üretir (elytra pelerin dokusunu kanat sanıp bozuk çiziyordu). */
+    private static NativeImage elytraFrom(NativeImage cape) {
+        int f = cape.getWidth() / 64;
+        NativeImage e = new NativeImage(64 * f, 32 * f, true);
+        for (int part = 0; part < 2; part++) {
+            int ox = (part == 0 ? 24 : 36) * f;
+            for (int y = 0; y < 20 * f; y++) {
+                for (int x = 0; x < 10 * f; x++) {
+                    int sx = f + x, sy = f + y * 16 / 20;
+                    int col = cape.getColorArgb(sx, sy);
+                    if (part == 1) {
+                        int r = (col >> 16 & 255) * 85 / 100, g = (col >> 8 & 255) * 85 / 100, b = (col & 255) * 85 / 100;
+                        col = (col & 0xFF000000) | (r << 16) | (g << 8) | b;
+                    }
+                    e.setColorArgb(ox + x, 2 * f + y, col);
+                }
+            }
+            for (int y = 0; y < 20 * f; y++) {
+                int a = e.getColorArgb(ox, 2 * f + y), b2 = e.getColorArgb(ox + 10 * f - 1, 2 * f + y);
+                for (int k = 1; k <= 2 * f; k++) { e.setColorArgb(ox - k, 2 * f + y, a); e.setColorArgb(ox + 10 * f - 1 + k, 2 * f + y, b2); }
+            }
+            for (int x = 0; x < 10 * f; x++) {
+                int a = e.getColorArgb(ox + x, 2 * f);
+                for (int k = 0; k < 2 * f; k++) e.setColorArgb(ox + x, k, a);
+            }
+        }
+        return e;
     }
 
     /** NativeImageBackedTexture kurucusu sürümler arasında değiştiği için hepsi denenir. */

@@ -83,6 +83,14 @@ public final class ModHooks {
         }
     }
 
+    public static boolean hideChat() {
+        try { return Extra9.hideChat(MinecraftClient.getInstance()); } catch (Throwable t) { return false; }
+    }
+
+    public static boolean hideTab() {
+        try { return Extra9.hideTab(); } catch (Throwable t) { return false; }
+    }
+
     /** Skin Değiştirici: sadece yerel oyuncunun skin dokusunu değiştirir. */
     public static Object skin(Object self, Object orig) {
         return Extra4.override(self, orig);

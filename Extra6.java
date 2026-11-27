@@ -120,14 +120,54 @@ final class Extra6 {
 
     // ================= Hasar Kenarı =================
     static final class VignetteMod extends Mod {
-        private final Setting sInt;
+        private final Setting sInt, sDir;
         private int prev;
         private long start;
+        private boolean hasDir;
+        private double dirX, dirZ;
 
         VignetteMod(boolean en) {
             super("hurtedge", "Hasar Kenarı", Cat.PVP, Items.REDSTONE, false, en);
             sInt = Setting.num("int", "Şiddet", 10, 100, 5, 70, "%");
+            sDir = Setting.bool("dir", "Hasarın geldiği yönü göster", true);
             add(sInt);
+            add(sDir);
+        }
+
+        /** Yakındaki en yakın canlıyı olası saldırgan sayar (sadece görünen varlıklar, ek bilgi sızmaz). */
+        private void findDir(MinecraftClient mc) {
+            hasDir = false;
+            var p = mc.player;
+            if (p == null || mc.world == null) return;
+            double best = 7 * 7;
+            for (var e : mc.world.getEntities()) {
+                if (e == p || !(e instanceof net.minecraft.entity.LivingEntity) || e.isInvisible()) continue;
+                double dx = e.getX() - p.getX(), dz = e.getZ() - p.getZ();
+                double d = dx * dx + dz * dz + Math.pow(e.getY() - p.getY(), 2);
+                if (d < best && dx * dx + dz * dz > 0.04) { best = d; dirX = dx; dirZ = dz; hasDir = true; }
+            }
+        }
+
+        private void wedge(DrawContext c, MinecraftClient mc, int sw, int sh, float a) {
+            double yaw = Math.toRadians(mc.player.getYaw());
+            double fx = -Math.sin(yaw), fz = Math.cos(yaw);
+            double dot = fx * dirX + fz * dirZ, cross = fx * dirZ - fz * dirX;
+            double len = Math.max(1e-6, Math.sqrt(dot * dot + cross * cross));
+            double sx = cross / len, sy = -dot / len;
+            double k = Math.min(sw / 2.0 / Math.max(1e-6, Math.abs(sx)), sh / 2.0 / Math.max(1e-6, Math.abs(sy)));
+            float ex = (float) (sw / 2.0 + sx * k), ey = (float) (sh / 2.0 + sy * k);
+            var m = c.getMatrices();
+            m.pushMatrix();
+            m.translate(ex, ey);
+            m.rotate((float) Math.atan2(sy, sx));
+            int depth = Math.max(30, sh / 6);
+            for (int i = 0; i < depth; i++) {
+                float f = 1f - i / (float) depth;
+                int w = (int) (sh / 5f * (0.5f + 0.5f * f));
+                int col = (Math.round(a * 200 * f * f) << 24) | 0xE02020;
+                c.fill(-i, -w / 2, -i + 1, w / 2, col);
+            }
+            m.popMatrix();
         }
 
         void render(DrawContext c, MinecraftClient mc, int sw, int sh) {
@@ -135,11 +175,12 @@ final class Extra6 {
             if (p == null) return;
             int h = p.hurtTime;
             long now = System.currentTimeMillis();
-            if (h > 0 && prev == 0) start = now;
+            if (h > 0 && prev == 0) { start = now; if (sDir.on()) findDir(mc); }
             prev = h;
             float t = (now - start) / 450f;
             if (t < 0f || t >= 1f) return;
             float a = (1f - t) * (sInt.value / 100f);
+            if (sDir.on() && hasDir) { wedge(c, mc, sw, sh, a); return; }
             int d = Math.max(20, sh / 5);
             int strong = (Math.round(a * 170) << 24) | 0xCC0000;
             int none = 0xCC0000;

@@ -53,6 +53,12 @@ public class SkinScreen extends Screen {
         skinImg = s > 0 && s <= m.files.size() ? read(m.files.get(s - 1)) : null;
         capeImg = c > 0 && c <= m.capes.size() ? read(m.capes.get(c - 1)) : null;
         if (skinImg != null && (skinImg.getWidth() != 64 || skinImg.getHeight() != 64)) skinImg = null;
+        if (capeImg != null && capeImg.getWidth() > 64 && capeImg.getWidth() % 64 == 0 && capeImg.getHeight() * 2 == capeImg.getWidth()) {
+            int f = capeImg.getWidth() / 64;
+            BufferedImage small = new BufferedImage(64, 32, BufferedImage.TYPE_INT_ARGB);
+            for (int yy = 0; yy < 32; yy++) for (int xx = 0; xx < 64; xx++) small.setRGB(xx, yy, capeImg.getRGB(xx * f + f / 2, yy * f + f / 2));
+            capeImg = small;
+        }
         if (capeImg != null && (capeImg.getWidth() != 64 || capeImg.getHeight() != 32)) capeImg = null;
     }
 

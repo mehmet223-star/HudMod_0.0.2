@@ -6,5 +6,7 @@
   "key.hudmod.stopwatch": "Stopwatch Start/Stop",
   "key.hudmod.stopreset": "Stopwatch Reset",
   "key.hudmod.note": "Quick Note",
+  "key.hudmod.focus": "Focus Mode Toggle",
+  "key.hudmod.clip": "Clip Marker",
   "key.category.hudmod.main": "GDF Client"
 }

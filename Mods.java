@@ -95,6 +95,7 @@ final class Mods {
         Extra5.hits++;
         Extra6.lastHit = now;
         ExtraMods.onAttack(e);
+        Extra9.onAttack(e);
     }
 
     static void tick(MinecraftClient mc) {
@@ -204,6 +205,7 @@ final class Mods {
         Extra6.init();
         Extra7.init();
         Extra8.init();
+        Extra9.init();
         describe();
     }
 

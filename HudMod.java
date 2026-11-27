@@ -26,7 +26,7 @@ public class HudMod implements ClientModInitializer {
     public static long tick = 1;
     public static long tickNs = System.nanoTime();
     static KeyBinding openMenu;
-    public static KeyBinding zoomKey, snapKey, wpKey, stopKey, stopResetKey, noteKey;
+    public static KeyBinding focusKey, clipKey, zoomKey, snapKey, wpKey, stopKey, stopResetKey, noteKey;
 
     @Override
     public void onInitializeClient() {
@@ -52,6 +52,11 @@ public class HudMod implements ClientModInitializer {
                 "key.hudmod.stopreset", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_L, cat));
         noteKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.hudmod.note", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_N, cat));
+
+        focusKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.hudmod.focus", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_F7, cat));
+        clipKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.hudmod.clip", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_F8, cat));
 
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hit) -> {
             if (world.isClient()) Mods.onAttack(entity);
@@ -143,6 +148,7 @@ public class HudMod implements ClientModInitializer {
         while (wpKey.wasPressed()) {
             if (mc.player != null && mc.world != null && mc.currentScreen == null) Waypoints.addHere(mc, null, false);
         }
+        Extra9.keys(mc);
         Mods.tick(mc);
 
         boolean perf = Mods.g("perf").on();
@@ -176,7 +182,7 @@ public class HudMod implements ClientModInitializer {
         if (ExtraMods.waypoints != null && ExtraMods.waypoints.active) ExtraMods.waypoints.render(c, mc, sw, sh);
 
         for (Mod m : Mods.ALL) {
-            if (!m.hud || m.anim < 0.03f) continue;
+            if (!m.hud || m.anim < 0.03f || Extra9.hides(m)) continue;
             if (!m.ready) m.update(mc);
             m.render(c, mc.textRenderer, m.px(sw), m.py(sh), false);
         }

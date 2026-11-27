@@ -10,6 +10,8 @@
     "WorldMixin",
     "PlayerSkinMixin",
     "ParticleManagerMixin",
+    "ChatHudMixin",
+    "PlayerListHudMixin",
     "GameRendererBlurMixin"
   ],
   "injectors": {
